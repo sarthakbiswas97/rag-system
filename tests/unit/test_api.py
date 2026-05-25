@@ -167,7 +167,9 @@ class TestQueryEndpoint:
             "/v1/query",
             json={"question": "test", "top_k": 10},
         )
-        mock_retriever.retrieve.assert_called_once_with("test", top_k=10)
+        mock_retriever.retrieve.assert_called_once_with(
+            "test", top_k=10, tenant_id="test-tenant-id"
+        )
 
     def test_verification_null_when_disabled(self, client: TestClient) -> None:
         resp = client.post(
