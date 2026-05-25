@@ -73,6 +73,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.pipeline = pipeline
     app.state.vector_store = vector_store
     app.state.db_session_factory = db_session_factory
+    app.state.admin_api_key = settings.admin_api_key
 
     logger.info("Application started")
     yield
