@@ -12,6 +12,15 @@ class Citation:
 
 
 @dataclass(frozen=True)
+class LLMResponse:
+    content: str
+    prompt_tokens: int
+    completion_tokens: int
+    model: str
+    elapsed_ms: float
+
+
+@dataclass(frozen=True)
 class GenerationResponse:
     answer: str
     citations: tuple[Citation, ...]

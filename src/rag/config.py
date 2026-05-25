@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     chunk_overlap: int = 64
     llm_model: str = "gpt-4o-mini"
     llm_temperature: float = 0.1
+    llm_max_tokens: int = 1024
+    llm_timeout: float = 30.0
     log_level: str = "INFO"
 
 

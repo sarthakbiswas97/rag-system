@@ -1,5 +1,5 @@
 from rag.models.document import Chunk, ChunkMetadata, RawDocument
-from rag.models.generation import Citation, GenerationResponse
+from rag.models.generation import Citation, GenerationResponse, LLMResponse
 from rag.models.ingestion import IngestionResult
 from rag.models.retrieval import RetrievalResult, ScoredChunk
 from rag.models.session import ConversationTurn
@@ -13,6 +13,7 @@ __all__ = [
     "RetrievalResult",
     "Citation",
     "GenerationResponse",
+    "LLMResponse",
     "IngestionResult",
     "EntailmentResult",
     "VerificationReport",
