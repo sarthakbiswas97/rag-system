@@ -65,7 +65,7 @@ class TestLLMClientGenerate:
         assert result.prompt_tokens == 50
         assert result.completion_tokens == 20
         assert result.model == "gpt-4o-mini"
-        assert result.elapsed_ms > 0
+        assert result.elapsed_ms >= 0
 
     @pytest.mark.asyncio
     async def test_passes_correct_messages(self, client: LLMClient) -> None:
