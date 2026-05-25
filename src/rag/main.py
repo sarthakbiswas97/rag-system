@@ -10,6 +10,7 @@ from qdrant_client import QdrantClient
 from starlette.requests import Request
 
 from rag.api.middleware import RequestContextMiddleware
+from rag.api.routes_admin import router as admin_router
 from rag.api.routes_health import router as health_router
 from rag.api.routes_ingest import router as ingest_router
 from rag.api.routes_query import router as query_router
@@ -94,6 +95,7 @@ def create_app() -> FastAPI:
     app.include_router(query_router)
     app.include_router(ingest_router)
     app.include_router(health_router)
+    app.include_router(admin_router)
 
     @app.exception_handler(Exception)
     async def global_error_handler(request: Request, exc: Exception) -> JSONResponse:
