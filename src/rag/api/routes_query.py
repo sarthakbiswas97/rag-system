@@ -4,7 +4,12 @@ import time
 
 from fastapi import APIRouter, Depends
 
-from rag.api.dependencies import get_generator, get_retriever, get_verification_pipeline
+from rag.api.dependencies import (
+    get_generator,
+    get_retriever,
+    get_session_store,
+    get_verification_pipeline,
+)
 from rag.api.schemas import (
     CitationOut,
     QueryRequest,
@@ -14,6 +19,7 @@ from rag.api.schemas import (
 )
 from rag.generation.generator import Generator
 from rag.retrieval.retriever import Retriever
+from rag.session.store import SessionStore
 from rag.tenancy.auth import get_current_tenant
 from rag.tenancy.models import Tenant
 from rag.verification.pipeline import VerificationPipeline
@@ -30,8 +36,24 @@ async def query(
     verification_pipeline: VerificationPipeline | None = Depends(
         get_verification_pipeline
     ),
+    session_store: SessionStore | None = Depends(get_session_store),
 ) -> QueryResponse:
     start = time.perf_counter()
+
+    session_id = body.session_id
+    session = None
+
+    if session_store is not None and session_id is not None:
+        session = session_store.get(session_id)
+
+    if session_store is not None and session is None and session_id is not None:
+        session = session_store.create(tenant_id=tenant.id)
+        session_id = session.session_id
+
+    if session is not None and session_store is not None:
+        session = session_store.add_turn(
+            session.session_id, "user", body.question
+        )
 
     retrieval_result = retriever.retrieve(
         body.question, top_k=body.top_k, tenant_id=tenant.id
@@ -75,6 +97,11 @@ async def query(
         final_is_abstention = generation_result.is_abstention
         final_confidence = generation_result.confidence_score
 
+    if session is not None and session_store is not None:
+        session_store.add_turn(
+            session.session_id, "assistant", final_answer
+        )
+
     total_ms = (time.perf_counter() - start) * 1000
 
     citations = [
@@ -98,4 +125,5 @@ async def query(
             total_ms=round(total_ms, 1),
         ),
         verification=verification_out,
+        session_id=session_id if session is not None else None,
     )

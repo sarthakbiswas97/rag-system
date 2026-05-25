@@ -9,6 +9,8 @@ from rag.generation.generator import Generator
 from rag.ingestion.pipeline import IngestionPipeline
 from rag.retrieval.retriever import Retriever
 from rag.retrieval.vector_store import VectorStore
+from rag.session.store import SessionStore
+from rag.verification.pipeline import VerificationPipeline
 
 
 def get_retriever(request: Request) -> Retriever:
@@ -25,6 +27,14 @@ def get_pipeline(request: Request) -> IngestionPipeline:
 
 def get_vector_store(request: Request) -> VectorStore:
     return request.app.state.vector_store
+
+
+def get_verification_pipeline(request: Request) -> VerificationPipeline | None:
+    return getattr(request.app.state, "verification_pipeline", None)
+
+
+def get_session_store(request: Request) -> SessionStore | None:
+    return getattr(request.app.state, "session_store", None)
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:

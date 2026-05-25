@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 class QueryRequest(BaseModel):
     question: str = Field(..., min_length=1)
     top_k: int = Field(default=5, ge=1, le=50)
+    session_id: str | None = None
 
     @field_validator("question")
     @classmethod
@@ -28,12 +29,21 @@ class TimingOut(BaseModel):
     total_ms: float
 
 
+class VerificationOut(BaseModel):
+    faithfulness_score: float | None = None
+    citations_verified: int | None = None
+    citations_supported: int | None = None
+    abstention_reason: str | None = None
+
+
 class QueryResponse(BaseModel):
     answer: str
     citations: list[CitationOut]
     is_abstention: bool
     confidence: float
     timing: TimingOut
+    verification: VerificationOut | None = None
+    session_id: str | None = None
 
 
 class IngestResponse(BaseModel):
@@ -47,3 +57,4 @@ class IngestResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     qdrant: str
+    database: str

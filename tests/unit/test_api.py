@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from io import BytesIO
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from rag.api.dependencies import (
+    get_db_session,
     get_generator,
     get_pipeline,
     get_retriever,
+    get_session_store,
     get_vector_store,
     get_verification_pipeline,
 )
@@ -99,6 +101,13 @@ def mock_vector_store() -> MagicMock:
 
 
 @pytest.fixture()
+def mock_db_session() -> AsyncMock:
+    session = AsyncMock()
+    session.execute.return_value = None
+    return session
+
+
+@pytest.fixture()
 def mock_tenant() -> Tenant:
     return Tenant(id="test-tenant-id", name="test", api_key_hash="fake", status=TenantStatus.ACTIVE)
 
@@ -109,6 +118,7 @@ def client(
     mock_generator: MagicMock,
     mock_pipeline: MagicMock,
     mock_vector_store: MagicMock,
+    mock_db_session: AsyncMock,
     mock_tenant: Tenant,
 ) -> TestClient:
     app = FastAPI()
@@ -126,7 +136,8 @@ def client(
     app.dependency_overrides[get_pipeline] = lambda: mock_pipeline
     app.dependency_overrides[get_vector_store] = lambda: mock_vector_store
     app.dependency_overrides[get_verification_pipeline] = lambda: None
-    app.dependency_overrides[get_current_tenant] = lambda: mock_tenant
+    app.dependency_overrides[get_session_store] = lambda: None
+    app.dependency_overrides[get_db_session] = lambda: mock_db_session
     app.dependency_overrides[get_current_tenant] = lambda: mock_tenant
 
     return TestClient(app)
@@ -211,6 +222,7 @@ class TestHealthEndpoint:
         data = resp.json()
         assert data["status"] == "healthy"
         assert data["qdrant"] == "connected"
+        assert data["database"] == "connected"
 
     def test_degraded_when_collection_missing(
         self, client: TestClient, mock_vector_store: MagicMock
@@ -222,7 +234,7 @@ class TestHealthEndpoint:
         assert data["status"] == "degraded"
         assert data["qdrant"] == "unreachable"
 
-    def test_degraded_on_exception(
+    def test_degraded_on_qdrant_exception(
         self, client: TestClient, mock_vector_store: MagicMock
     ) -> None:
         mock_vector_store.collection_exists.side_effect = Exception(
@@ -232,3 +244,13 @@ class TestHealthEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "degraded"
+
+    def test_degraded_on_db_failure(
+        self, client: TestClient, mock_db_session: AsyncMock
+    ) -> None:
+        mock_db_session.execute.side_effect = Exception("db unreachable")
+        resp = client.get("/v1/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "degraded"
+        assert data["database"] == "unreachable"
