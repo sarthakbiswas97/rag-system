@@ -26,12 +26,14 @@ def _make_chunk(
     embedding: tuple[float, ...],
     doc_id: str = "doc-1",
     source: str = "test.txt",
+    tenant_id: str = "",
 ) -> Chunk:
     return Chunk(
         document_id=doc_id,
         text=text,
         metadata=ChunkMetadata(
             source_file=source,
+            tenant_id=tenant_id,
             chunk_index=0,
             total_chunks=1,
         ),
@@ -140,3 +142,56 @@ class TestSearch:
 
         results = store.search(query_embedding=(1.0, 0.0, 0.0, 0.0), top_k=3)
         assert len(results) == 3
+
+
+class TestTenantIsolation:
+    def test_search_filters_by_tenant(self, store: VectorStore) -> None:
+        chunk_a = _make_chunk("tenant-a doc", (1.0, 0.0, 0.0, 0.0), tenant_id="t-a")
+        chunk_b = _make_chunk("tenant-b doc", (1.0, 0.0, 0.0, 0.0), tenant_id="t-b")
+        store.upsert_chunks([chunk_a, chunk_b])
+
+        results = store.search(
+            query_embedding=(1.0, 0.0, 0.0, 0.0), top_k=10, tenant_id="t-a"
+        )
+        assert len(results) == 1
+        assert results[0].chunk.metadata.tenant_id == "t-a"
+
+    def test_search_without_tenant_returns_all(self, store: VectorStore) -> None:
+        chunk_a = _make_chunk("a", (1.0, 0.0, 0.0, 0.0), tenant_id="t-a")
+        chunk_b = _make_chunk("b", (0.9, 0.1, 0.0, 0.0), tenant_id="t-b")
+        store.upsert_chunks([chunk_a, chunk_b])
+
+        results = store.search(query_embedding=(1.0, 0.0, 0.0, 0.0), top_k=10)
+        assert len(results) == 2
+
+    def test_count_by_tenant(self, store: VectorStore) -> None:
+        chunks = [
+            _make_chunk("a1", (1.0, 0.0, 0.0, 0.0), tenant_id="t-a"),
+            _make_chunk("a2", (0.0, 1.0, 0.0, 0.0), tenant_id="t-a"),
+            _make_chunk("b1", (0.0, 0.0, 1.0, 0.0), tenant_id="t-b"),
+        ]
+        store.upsert_chunks(chunks)
+
+        assert store.count_by_tenant("t-a") == 2
+        assert store.count_by_tenant("t-b") == 1
+        assert store.count_by_tenant("t-none") == 0
+
+    def test_delete_by_tenant(self, store: VectorStore) -> None:
+        chunks = [
+            _make_chunk("a1", (1.0, 0.0, 0.0, 0.0), tenant_id="t-a"),
+            _make_chunk("b1", (0.0, 1.0, 0.0, 0.0), tenant_id="t-b"),
+        ]
+        store.upsert_chunks(chunks)
+
+        store.delete_by_tenant("t-a")
+        assert store.count_by_tenant("t-a") == 0
+        assert store.count_by_tenant("t-b") == 1
+
+    def test_tenant_id_persists_in_metadata(self, store: VectorStore) -> None:
+        chunk = _make_chunk("test", (1.0, 0.0, 0.0, 0.0), tenant_id="t-x")
+        store.upsert_chunks([chunk])
+
+        results = store.search(
+            query_embedding=(1.0, 0.0, 0.0, 0.0), top_k=1, tenant_id="t-x"
+        )
+        assert results[0].chunk.metadata.tenant_id == "t-x"
