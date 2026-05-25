@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     openai_api_key: str = ""
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_batch_size: int = 64
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
     chunk_size: int = 512

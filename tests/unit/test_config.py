@@ -4,7 +4,8 @@ from rag.config import Settings, get_settings
 class TestSettings:
     def test_defaults(self) -> None:
         settings = Settings(openai_api_key="test")
-        assert settings.embedding_model == "all-MiniLM-L6-v2"
+        assert settings.embedding_model == "BAAI/bge-small-en-v1.5"
+        assert settings.embedding_batch_size == 64
         assert settings.chunk_size == 512
         assert settings.chunk_overlap == 64
         assert settings.llm_model == "gpt-4o-mini"
