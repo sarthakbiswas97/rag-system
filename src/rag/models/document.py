@@ -6,6 +6,7 @@ from uuid import uuid4
 @dataclass(frozen=True)
 class ChunkMetadata:
     source_file: str
+    tenant_id: str = ""
     page_number: int | None = None
     section_title: str | None = None
     chunk_index: int = 0
