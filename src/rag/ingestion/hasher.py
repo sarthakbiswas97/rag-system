@@ -20,11 +20,12 @@ class ContentHasher:
     def __init__(self) -> None:
         self._seen: set[str] = set()
 
-    def is_duplicate(self, doc: RawDocument) -> bool:
+    def is_duplicate(self, doc: RawDocument, tenant_id: str = "") -> bool:
         doc_hash = compute_hash(doc.content)
-        if doc_hash in self._seen:
+        scoped_key = f"{tenant_id}:{doc_hash}"
+        if scoped_key in self._seen:
             return True
-        self._seen.add(doc_hash)
+        self._seen.add(scoped_key)
         return False
 
     def reset(self) -> None:

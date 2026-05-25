@@ -29,7 +29,9 @@ class IngestionPipeline:
         self._chunk_overlap = chunk_overlap
         self._hasher = ContentHasher()
 
-    def ingest_documents(self, paths: Sequence[Path]) -> IngestionResult:
+    def ingest_documents(
+        self, paths: Sequence[Path], tenant_id: str = ""
+    ) -> IngestionResult:
         start = time.perf_counter()
         processed = 0
         skipped = 0
@@ -40,7 +42,7 @@ class IngestionPipeline:
             try:
                 doc = load_document(path)
 
-                if self._hasher.is_duplicate(doc):
+                if self._hasher.is_duplicate(doc, tenant_id=tenant_id):
                     logger.info(
                         "Skipping duplicate document",
                         extra={"path": str(path)},
@@ -48,7 +50,9 @@ class IngestionPipeline:
                     skipped += 1
                     continue
 
-                chunks = chunk_document(doc, self._chunk_size, self._chunk_overlap)
+                chunks = chunk_document(
+                    doc, self._chunk_size, self._chunk_overlap, tenant_id=tenant_id
+                )
                 if not chunks:
                     logger.info(
                         "Document produced no chunks",
@@ -101,7 +105,9 @@ class IngestionPipeline:
 
         return result
 
-    def ingest_directory(self, directory: Path) -> IngestionResult:
+    def ingest_directory(
+        self, directory: Path, tenant_id: str = ""
+    ) -> IngestionResult:
         if not directory.is_dir():
             raise NotADirectoryError(f"Not a directory: {directory}")
 
@@ -116,4 +122,4 @@ class IngestionPipeline:
             extra={"directory": str(directory), "count": len(paths)},
         )
 
-        return self.ingest_documents(paths)
+        return self.ingest_documents(paths, tenant_id=tenant_id)

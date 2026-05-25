@@ -130,6 +130,7 @@ def chunk_document(
     chunk_size: int = 512,
     chunk_overlap: int = 64,
     separators: list[str] | None = None,
+    tenant_id: str = "",
 ) -> tuple[Chunk, ...]:
     """Split a RawDocument into a tuple of frozen Chunks."""
     if chunk_overlap >= chunk_size:
@@ -151,6 +152,7 @@ def chunk_document(
             text=text,
             metadata=ChunkMetadata(
                 source_file=doc.source_path,
+                tenant_id=tenant_id,
                 chunk_index=i,
                 total_chunks=total,
             ),
