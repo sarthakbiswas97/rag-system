@@ -10,6 +10,7 @@ from rag.ingestion.embedder import Embedder
 from rag.ingestion.hasher import ContentHasher
 from rag.ingestion.loader import SUPPORTED_EXTENSIONS, load_document
 from rag.models.ingestion import IngestionResult
+from rag.retrieval.bm25_store import BM25Store
 from rag.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -22,12 +23,14 @@ class IngestionPipeline:
         vector_store: VectorStore,
         chunk_size: int = 512,
         chunk_overlap: int = 64,
+        bm25_store: BM25Store | None = None,
     ) -> None:
         self._embedder = embedder
         self._vector_store = vector_store
         self._chunk_size = chunk_size
         self._chunk_overlap = chunk_overlap
         self._hasher = ContentHasher()
+        self._bm25_store = bm25_store
 
     def ingest_documents(
         self, paths: Sequence[Path], tenant_id: str = ""
@@ -63,6 +66,9 @@ class IngestionPipeline:
 
                 embedded = self._embedder.embed_chunks(chunks)
                 self._vector_store.upsert_chunks(embedded)
+
+                if self._bm25_store is not None:
+                    self._bm25_store.add_chunks(embedded)
 
                 processed += 1
                 total_chunks += len(embedded)
