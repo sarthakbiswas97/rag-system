@@ -15,6 +15,7 @@ from rag.api.routes_ingest import router as ingest_router
 from rag.api.routes_query import router as query_router
 from rag.config import get_settings
 from rag.generation.generator import Generator
+from rag.tenancy.database import build_engine, build_session_factory, close_db, init_db
 from rag.generation.llm_client import LLMClient
 from rag.ingestion.embedder import Embedder
 from rag.ingestion.pipeline import IngestionPipeline
@@ -63,13 +64,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         chunk_overlap=settings.chunk_overlap,
     )
 
+    db_engine = build_engine(settings.database_url)
+    await init_db(db_engine)
+    db_session_factory = build_session_factory(db_engine)
+
     app.state.retriever = retriever
     app.state.generator = generator
     app.state.pipeline = pipeline
     app.state.vector_store = vector_store
+    app.state.db_session_factory = db_session_factory
 
     logger.info("Application started")
     yield
+
+    await close_db(db_engine)
     logger.info("Application shutting down")
 
 
