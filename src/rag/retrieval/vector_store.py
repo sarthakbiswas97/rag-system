@@ -6,6 +6,9 @@ from collections.abc import Sequence
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
     PayloadSchemaType,
     PointStruct,
     VectorParams,
@@ -21,6 +24,7 @@ def _chunk_to_payload(chunk: Chunk) -> dict:
     return {
         "text": chunk.text,
         "document_id": chunk.document_id,
+        "tenant_id": chunk.metadata.tenant_id,
         "source_file": chunk.metadata.source_file,
         "page_number": chunk.metadata.page_number,
         "section_title": chunk.metadata.section_title,
@@ -38,6 +42,7 @@ def _payload_to_chunk(point_id: str, payload: dict) -> Chunk:
         text=payload.get("text", ""),
         metadata=ChunkMetadata(
             source_file=payload.get("source_file", ""),
+            tenant_id=payload.get("tenant_id", ""),
             page_number=payload.get("page_number"),
             section_title=payload.get("section_title"),
             chunk_index=payload.get("chunk_index", 0),
@@ -81,6 +86,11 @@ class VectorStore:
         self._client.create_payload_index(
             collection_name=self._collection,
             field_name="source_file",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+        self._client.create_payload_index(
+            collection_name=self._collection,
+            field_name="tenant_id",
             field_schema=PayloadSchemaType.KEYWORD,
         )
 
@@ -146,10 +156,22 @@ class VectorStore:
         self,
         query_embedding: tuple[float, ...],
         top_k: int = 50,
+        tenant_id: str = "",
     ) -> tuple[ScoredChunk, ...]:
+        query_filter = None
+        if tenant_id:
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="tenant_id", match=MatchValue(value=tenant_id)
+                    )
+                ]
+            )
+
         results = self._client.query_points(
             collection_name=self._collection,
             query=list(query_embedding),
+            query_filter=query_filter,
             limit=top_k,
         ).points
 
@@ -163,3 +185,33 @@ class VectorStore:
         )
 
         return scored_chunks
+
+    def delete_by_tenant(self, tenant_id: str) -> None:
+        self._client.delete(
+            collection_name=self._collection,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="tenant_id", match=MatchValue(value=tenant_id)
+                    )
+                ]
+            ),
+        )
+        logger.info(
+            "Deleted tenant chunks",
+            extra={"collection": self._collection, "tenant_id": tenant_id},
+        )
+
+    def count_by_tenant(self, tenant_id: str) -> int:
+        result = self._client.count(
+            collection_name=self._collection,
+            count_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="tenant_id", match=MatchValue(value=tenant_id)
+                    )
+                ]
+            ),
+            exact=True,
+        )
+        return result.count
