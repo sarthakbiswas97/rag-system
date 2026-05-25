@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 1024
     llm_timeout: float = 30.0
     log_level: str = "INFO"
+    database_url: str = "sqlite+aiosqlite:///./data/rag.db"
+    admin_api_key: str = ""
+    redis_url: str = "redis://localhost:6379"
 
 
 def get_settings() -> Settings:
