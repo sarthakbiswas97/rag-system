@@ -12,6 +12,16 @@ class Settings(BaseSettings):
     qdrant_collection: str = "documents"
     chunk_size: int = 512
     chunk_overlap: int = 64
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    enable_reranking: bool = True
+    enable_hybrid_search: bool = True
+    enable_query_rewriting: bool = False
+    nli_model: str = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
+    enable_verification: bool = True
+    faithfulness_threshold: float = 0.7
+    retrieval_score_threshold: float = 0.3
+    reranker_score_threshold: float = 0.5
+    citation_support_threshold: float = 0.5
     llm_model: str = "gpt-4o-mini"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 1024
