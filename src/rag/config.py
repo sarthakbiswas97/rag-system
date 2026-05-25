@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     embedding_batch_size: int = 64
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
+    qdrant_collection: str = "documents"
     chunk_size: int = 512
     chunk_overlap: int = 64
     llm_model: str = "gpt-4o-mini"
