@@ -10,6 +10,7 @@ class ChunkMetadata:
     section_title: str | None = None
     chunk_index: int = 0
     total_chunks: int = 0
+    parent_chunk_id: str | None = None
     created_at: str = field(default_factory=lambda: datetime.now(tz=UTC).isoformat())
 
 

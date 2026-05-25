@@ -17,6 +17,14 @@ class TestChunkMetadata:
         assert meta.chunk_index == 0
         assert meta.created_at  # non-empty timestamp
 
+    def test_parent_chunk_id_defaults_to_none(self) -> None:
+        meta = ChunkMetadata(source_file="test.txt")
+        assert meta.parent_chunk_id is None
+
+    def test_parent_chunk_id_stores_value(self) -> None:
+        meta = ChunkMetadata(source_file="test.txt", parent_chunk_id="parent-123")
+        assert meta.parent_chunk_id == "parent-123"
+
     def test_is_frozen(self) -> None:
         meta = ChunkMetadata(source_file="test.txt")
         with pytest.raises(dataclasses.FrozenInstanceError):
