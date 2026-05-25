@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, UploadFile
 from rag.api.dependencies import get_pipeline
 from rag.api.schemas import IngestResponse
 from rag.ingestion.pipeline import IngestionPipeline
+from rag.tenancy.auth import get_current_tenant
+from rag.tenancy.models import Tenant
 
 router = APIRouter()
 
@@ -16,6 +18,7 @@ router = APIRouter()
 @router.post("/v1/ingest", response_model=IngestResponse)
 async def ingest(
     files: list[UploadFile],
+    tenant: Tenant = Depends(get_current_tenant),
     pipeline: IngestionPipeline = Depends(get_pipeline),
 ) -> IngestResponse:
     tmp_dir = Path(tempfile.mkdtemp())
@@ -27,7 +30,7 @@ async def ingest(
             dest.write_bytes(content)
             paths.append(dest)
 
-        result = pipeline.ingest_documents(paths)
+        result = pipeline.ingest_documents(paths, tenant_id=tenant.id)
 
         return IngestResponse(
             documents_processed=result.documents_processed,
