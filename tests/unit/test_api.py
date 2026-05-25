@@ -12,7 +12,10 @@ from rag.api.dependencies import (
     get_pipeline,
     get_retriever,
     get_vector_store,
+    get_verification_pipeline,
 )
+from rag.tenancy.auth import get_current_tenant
+from rag.tenancy.models import Tenant, TenantStatus
 from rag.api.routes_health import router as health_router
 from rag.api.routes_ingest import router as ingest_router
 from rag.api.routes_query import router as query_router
@@ -96,21 +99,35 @@ def mock_vector_store() -> MagicMock:
 
 
 @pytest.fixture()
+def mock_tenant() -> Tenant:
+    return Tenant(id="test-tenant-id", name="test", api_key_hash="fake", status=TenantStatus.ACTIVE)
+
+
+@pytest.fixture()
 def client(
     mock_retriever: MagicMock,
     mock_generator: MagicMock,
     mock_pipeline: MagicMock,
     mock_vector_store: MagicMock,
+    mock_tenant: Tenant,
 ) -> TestClient:
     app = FastAPI()
     app.include_router(query_router)
     app.include_router(ingest_router)
     app.include_router(health_router)
 
+    mock_tenant = MagicMock(spec=Tenant)
+    mock_tenant.id = "test-tenant-id"
+    mock_tenant.name = "test"
+    mock_tenant.status = TenantStatus.ACTIVE
+
     app.dependency_overrides[get_retriever] = lambda: mock_retriever
     app.dependency_overrides[get_generator] = lambda: mock_generator
     app.dependency_overrides[get_pipeline] = lambda: mock_pipeline
     app.dependency_overrides[get_vector_store] = lambda: mock_vector_store
+    app.dependency_overrides[get_verification_pipeline] = lambda: None
+    app.dependency_overrides[get_current_tenant] = lambda: mock_tenant
+    app.dependency_overrides[get_current_tenant] = lambda: mock_tenant
 
     return TestClient(app)
 
@@ -151,6 +168,14 @@ class TestQueryEndpoint:
             json={"question": "test", "top_k": 10},
         )
         mock_retriever.retrieve.assert_called_once_with("test", top_k=10)
+
+    def test_verification_null_when_disabled(self, client: TestClient) -> None:
+        resp = client.post(
+            "/v1/query",
+            json={"question": "What is the capital of France?"},
+        )
+        data = resp.json()
+        assert data["verification"] is None
 
     def test_top_k_out_of_range_returns_422(self, client: TestClient) -> None:
         resp = client.post(
