@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from rag.ingestion.chunker import chunk_document
 from rag.ingestion.hasher import ContentHasher
 from rag.models.document import RawDocument

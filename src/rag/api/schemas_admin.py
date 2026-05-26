@@ -1,10 +1,23 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class CreateTenantRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
+    email: str = Field(default="")
+
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("name must not be blank")
+        return v.strip()
+
+
+class RegisterRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    email: EmailStr
 
     @field_validator("name")
     @classmethod
@@ -17,6 +30,7 @@ class CreateTenantRequest(BaseModel):
 class TenantOut(BaseModel):
     id: str
     name: str
+    email: str
     status: str
     embedding_model_version: str | None
     created_at: str

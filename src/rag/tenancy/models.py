@@ -12,20 +12,20 @@ class Base(DeclarativeBase):
     pass
 
 
-class TenantStatus(str, enum.Enum):
+class TenantStatus(enum.StrEnum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
     DELETED = "deleted"
 
 
-class FineTuneStatus(str, enum.Enum):
+class FineTuneStatus(enum.StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
 
 
-class ModelType(str, enum.Enum):
+class ModelType(enum.StrEnum):
     EMBEDDING = "embedding"
     LLM = "llm"
 
@@ -37,6 +37,9 @@ class Tenant(Base):
         String(36), primary_key=True, default=lambda: str(uuid4())
     )
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(255), unique=False, nullable=False, default=""
+    )
     api_key_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     status: Mapped[TenantStatus] = mapped_column(
         Enum(TenantStatus), default=TenantStatus.ACTIVE, nullable=False

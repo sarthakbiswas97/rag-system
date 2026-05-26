@@ -16,6 +16,7 @@ def _make_mock_tenant() -> MagicMock:
     tenant = MagicMock(spec=Tenant)
     tenant.id = "tenant-123"
     tenant.name = "Acme Corp"
+    tenant.email = "acme@example.com"
     tenant.status = TenantStatus.ACTIVE
     tenant.embedding_model_version = None
     tenant.created_at.isoformat.return_value = "2026-01-01T00:00:00"

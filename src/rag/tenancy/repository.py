@@ -27,16 +27,20 @@ class TenantRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def create(self, name: str) -> tuple[Tenant, str]:
+    async def create(self, name: str, email: str = "") -> tuple[Tenant, str]:
         api_key = generate_api_key()
         tenant = Tenant(
             name=name,
+            email=email,
             api_key_hash=hash_api_key(api_key),
         )
         self._session.add(tenant)
         await self._session.commit()
         await self._session.refresh(tenant)
-        logger.info("Tenant created", extra={"tenant_id": tenant.id, "name": name})
+        logger.info(
+            "Tenant created",
+            extra={"tenant_id": tenant.id, "tenant_name": name},
+        )
         return tenant, api_key
 
     async def get_by_id(self, tenant_id: str) -> Tenant | None:

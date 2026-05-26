@@ -18,8 +18,6 @@ from rag.api.dependencies import (
     get_vector_store,
     get_verification_pipeline,
 )
-from rag.tenancy.auth import get_current_tenant
-from rag.tenancy.models import Tenant, TenantStatus
 from rag.api.routes_health import router as health_router
 from rag.api.routes_ingest import router as ingest_router
 from rag.api.routes_query import router as query_router
@@ -27,6 +25,8 @@ from rag.models.document import Chunk, ChunkMetadata
 from rag.models.generation import Citation, GenerationResponse
 from rag.models.ingestion import IngestionResult
 from rag.models.retrieval import RetrievalResult, ScoredChunk
+from rag.tenancy.auth import get_current_tenant
+from rag.tenancy.models import Tenant, TenantStatus
 
 
 def _make_retrieval_result() -> RetrievalResult:
@@ -111,7 +111,13 @@ def mock_db_session() -> AsyncMock:
 
 @pytest.fixture()
 def mock_tenant() -> Tenant:
-    return Tenant(id="test-tenant-id", name="test", email="test@example.com", api_key_hash="fake", status=TenantStatus.ACTIVE)
+    return Tenant(
+        id="test-tenant-id",
+        name="test",
+        email="test@example.com",
+        api_key_hash="fake",
+        status=TenantStatus.ACTIVE,
+    )
 
 
 @pytest.fixture()

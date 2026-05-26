@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from fastapi import FastAPI, Depends
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends, FastAPI
+from httpx import ASGITransport, AsyncClient
 
 from rag.tenancy.auth import get_current_tenant, require_admin
 from rag.tenancy.database import build_engine, build_session_factory, init_db
@@ -27,7 +26,7 @@ async def tenant_and_key(db_setup) -> tuple[Tenant, str]:
     _, session_factory = db_setup
     async with session_factory() as session:
         repo = TenantRepository(session)
-        tenant, api_key = await repo.create("test-tenant")
+        tenant, api_key = await repo.create("test-tenant", email="test@test.com")
         return tenant, api_key
 
 

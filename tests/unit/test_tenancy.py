@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rag.tenancy.database import build_engine, build_session_factory, init_db
 from rag.tenancy.models import (
-    FineTuneJob,
     FineTuneStatus,
     ModelType,
-    Tenant,
     TenantStatus,
 )
 from rag.tenancy.repository import (
@@ -59,15 +58,16 @@ class TestApiKeyUtils:
 
 class TestTenantRepository:
     async def test_create_tenant(self, repo: TenantRepository) -> None:
-        tenant, api_key = await repo.create("acme")
+        tenant, api_key = await repo.create("acme", email="acme@test.com")
         assert tenant.name == "acme"
+        assert tenant.email == "acme@test.com"
         assert tenant.status == TenantStatus.ACTIVE
         assert tenant.id is not None
         assert api_key.startswith(API_KEY_PREFIX)
         assert tenant.embedding_model_version is None
 
     async def test_get_by_id(self, repo: TenantRepository) -> None:
-        tenant, _ = await repo.create("acme")
+        tenant, _ = await repo.create("acme", email="acme@test.com")
         found = await repo.get_by_id(tenant.id)
         assert found is not None
         assert found.name == "acme"
@@ -77,47 +77,47 @@ class TestTenantRepository:
         assert result is None
 
     async def test_get_by_api_key(self, repo: TenantRepository) -> None:
-        tenant, api_key = await repo.create("acme")
+        tenant, api_key = await repo.create("acme", email="acme@test.com")
         found = await repo.get_by_api_key(api_key)
         assert found is not None
         assert found.id == tenant.id
 
     async def test_get_by_api_key_invalid(self, repo: TenantRepository) -> None:
-        await repo.create("acme")
+        await repo.create("acme", email="acme@test.com")
         result = await repo.get_by_api_key("rk_invalid_key")
         assert result is None
 
     async def test_get_by_api_key_excludes_deleted(
         self, repo: TenantRepository
     ) -> None:
-        tenant, api_key = await repo.create("acme")
+        tenant, api_key = await repo.create("acme", email="acme@test.com")
         await repo.soft_delete(tenant.id)
         result = await repo.get_by_api_key(api_key)
         assert result is None
 
     async def test_list_all(self, repo: TenantRepository) -> None:
-        await repo.create("tenant-a")
-        await repo.create("tenant-b")
+        await repo.create("tenant-a", email="a@test.com")
+        await repo.create("tenant-b", email="b@test.com")
         tenants = await repo.list_all()
         assert len(tenants) == 2
 
     async def test_list_all_excludes_deleted(self, repo: TenantRepository) -> None:
-        t1, _ = await repo.create("tenant-a")
-        await repo.create("tenant-b")
+        t1, _ = await repo.create("tenant-a", email="a@test.com")
+        await repo.create("tenant-b", email="b@test.com")
         await repo.soft_delete(t1.id)
         tenants = await repo.list_all()
         assert len(tenants) == 1
         assert tenants[0].name == "tenant-b"
 
     async def test_list_all_includes_deleted(self, repo: TenantRepository) -> None:
-        t1, _ = await repo.create("tenant-a")
-        await repo.create("tenant-b")
+        t1, _ = await repo.create("tenant-a", email="a@test.com")
+        await repo.create("tenant-b", email="b@test.com")
         await repo.soft_delete(t1.id)
         tenants = await repo.list_all(include_deleted=True)
         assert len(tenants) == 2
 
     async def test_soft_delete(self, repo: TenantRepository) -> None:
-        tenant, _ = await repo.create("acme")
+        tenant, _ = await repo.create("acme", email="acme@test.com")
         deleted = await repo.soft_delete(tenant.id)
         assert deleted is not None
         assert deleted.status == TenantStatus.DELETED
@@ -127,13 +127,13 @@ class TestTenantRepository:
         assert result is None
 
     async def test_update_status(self, repo: TenantRepository) -> None:
-        tenant, _ = await repo.create("acme")
+        tenant, _ = await repo.create("acme", email="acme@test.com")
         updated = await repo.update_status(tenant.id, TenantStatus.SUSPENDED)
         assert updated is not None
         assert updated.status == TenantStatus.SUSPENDED
 
     async def test_update_name(self, repo: TenantRepository) -> None:
-        tenant, _ = await repo.create("old-name")
+        tenant, _ = await repo.create("old-name", email="old@test.com")
         updated = await repo.update_name(tenant.id, "new-name")
         assert updated is not None
         assert updated.name == "new-name"
@@ -143,13 +143,13 @@ class TestTenantRepository:
         assert result is None
 
     async def test_created_at_is_set(self, repo: TenantRepository) -> None:
-        tenant, _ = await repo.create("acme")
+        tenant, _ = await repo.create("acme", email="acme@test.com")
         assert tenant.created_at is not None
 
     async def test_duplicate_name_raises(self, repo: TenantRepository) -> None:
-        await repo.create("acme")
-        with pytest.raises(Exception):
-            await repo.create("acme")
+        await repo.create("acme", email="acme@test.com")
+        with pytest.raises(IntegrityError):
+            await repo.create("acme", email="acme2@test.com")
 
 
 class TestTenantModel:

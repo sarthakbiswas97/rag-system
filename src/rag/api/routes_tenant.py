@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from rag.api.dependencies import get_db_session, get_vector_store
 from rag.api.schemas_admin import TenantOut, TenantStatsOut, UpdateTenantRequest
@@ -8,7 +9,6 @@ from rag.retrieval.vector_store import VectorStore
 from rag.tenancy.auth import get_current_tenant
 from rag.tenancy.models import Tenant
 from rag.tenancy.repository import TenantRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -20,6 +20,7 @@ async def get_tenant_info(
     return TenantOut(
         id=tenant.id,
         name=tenant.name,
+        email=tenant.email,
         status=tenant.status.value,
         embedding_model_version=tenant.embedding_model_version,
         created_at=tenant.created_at.isoformat(),
@@ -51,6 +52,7 @@ async def update_tenant_info(
     return TenantOut(
         id=t.id,
         name=t.name,
+        email=t.email,
         status=t.status.value,
         embedding_model_version=t.embedding_model_version,
         created_at=t.created_at.isoformat(),

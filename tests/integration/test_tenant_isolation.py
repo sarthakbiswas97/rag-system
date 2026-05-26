@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from io import BytesIO
-from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from qdrant_client import QdrantClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from rag.api.dependencies import get_db_session, get_pipeline, get_vector_store
 from rag.api.routes_admin import router as admin_router
