@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./data/rag.db"
     admin_api_key: str = ""
     redis_url: str = "redis://localhost:6379"
+    cors_origins: list[str] = ["http://localhost:3000"]
 
 
 def get_settings() -> Settings:

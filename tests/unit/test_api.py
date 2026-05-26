@@ -111,7 +111,7 @@ def mock_db_session() -> AsyncMock:
 
 @pytest.fixture()
 def mock_tenant() -> Tenant:
-    return Tenant(id="test-tenant-id", name="test", api_key_hash="fake", status=TenantStatus.ACTIVE)
+    return Tenant(id="test-tenant-id", name="test", email="test@example.com", api_key_hash="fake", status=TenantStatus.ACTIVE)
 
 
 @pytest.fixture()
@@ -131,6 +131,7 @@ def client(
     mock_tenant = MagicMock(spec=Tenant)
     mock_tenant.id = "test-tenant-id"
     mock_tenant.name = "test"
+    mock_tenant.email = "test@example.com"
     mock_tenant.status = TenantStatus.ACTIVE
 
     app.dependency_overrides[get_retriever] = lambda: mock_retriever

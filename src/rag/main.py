@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from qdrant_client import QdrantClient
 from redis import Redis
@@ -14,7 +15,9 @@ from rag.api.middleware import RequestContextMiddleware
 from rag.api.routes_admin import router as admin_router
 from rag.api.routes_health import router as health_router
 from rag.api.routes_ingest import router as ingest_router
+from rag.api.routes_metrics import router as metrics_router
 from rag.api.routes_query import router as query_router
+from rag.api.routes_register import router as register_router
 from rag.api.routes_tenant import router as tenant_router
 from rag.config import get_settings
 from rag.generation.generator import Generator
@@ -22,6 +25,8 @@ from rag.generation.llm_client import LLMClient
 from rag.ingestion.embedder import Embedder
 from rag.ingestion.job import JobStore
 from rag.ingestion.pipeline import IngestionPipeline
+from rag.observability.logging import setup_logging
+from rag.observability.metrics import APP_INFO
 from rag.retrieval.bm25_store import BM25Store
 from rag.retrieval.reranker import Reranker
 from rag.retrieval.retriever import Retriever
@@ -33,17 +38,15 @@ from rag.verification.citation_validator import CitationValidator
 from rag.verification.entailment import EntailmentChecker
 from rag.verification.pipeline import VerificationPipeline
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
 
-    logging.basicConfig(
-        level=settings.log_level,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    setup_logging(settings.log_level)
+    APP_INFO.info({"version": "0.1.0"})
 
     embedder = Embedder(
         model_name=settings.embedding_model,
@@ -139,13 +142,23 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    settings = get_settings()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.add_middleware(RequestContextMiddleware)
 
+    app.include_router(register_router)
     app.include_router(query_router)
     app.include_router(ingest_router)
     app.include_router(health_router)
     app.include_router(admin_router)
     app.include_router(tenant_router)
+    app.include_router(metrics_router)
 
     @app.exception_handler(Exception)
     async def global_error_handler(request: Request, exc: Exception) -> JSONResponse:
