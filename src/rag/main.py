@@ -20,6 +20,7 @@ from rag.config import get_settings
 from rag.generation.generator import Generator
 from rag.generation.llm_client import LLMClient
 from rag.ingestion.embedder import Embedder
+from rag.ingestion.job import JobStore
 from rag.ingestion.pipeline import IngestionPipeline
 from rag.retrieval.bm25_store import BM25Store
 from rag.retrieval.reranker import Reranker
@@ -110,8 +111,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     redis_client = Redis.from_url(settings.redis_url)
     session_store = SessionStore(client=redis_client)
+    job_store = JobStore(client=redis_client)
 
     app.state.session_store = session_store
+    app.state.job_store = job_store
     app.state.llm_client = llm_client
     app.state.retriever = retriever
     app.state.generator = generator

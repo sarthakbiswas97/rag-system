@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from rag.api.dependencies import (
     get_db_session,
     get_generator,
+    get_job_store,
     get_llm_client,
     get_pipeline,
     get_retriever,
@@ -138,6 +139,7 @@ def client(
     app.dependency_overrides[get_vector_store] = lambda: mock_vector_store
     app.dependency_overrides[get_verification_pipeline] = lambda: None
     app.dependency_overrides[get_llm_client] = lambda: MagicMock()
+    app.dependency_overrides[get_job_store] = lambda: MagicMock()
     app.dependency_overrides[get_session_store] = lambda: None
     app.dependency_overrides[get_db_session] = lambda: mock_db_session
     app.dependency_overrides[get_current_tenant] = lambda: mock_tenant

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from rag.generation.generator import Generator
 from rag.generation.llm_client import LLMClient
+from rag.ingestion.job import JobStore
 from rag.ingestion.pipeline import IngestionPipeline
 from rag.retrieval.retriever import Retriever
 from rag.retrieval.vector_store import VectorStore
@@ -32,6 +33,10 @@ def get_vector_store(request: Request) -> VectorStore:
 
 def get_verification_pipeline(request: Request) -> VerificationPipeline | None:
     return getattr(request.app.state, "verification_pipeline", None)
+
+
+def get_job_store(request: Request) -> JobStore:
+    return request.app.state.job_store
 
 
 def get_llm_client(request: Request) -> LLMClient:

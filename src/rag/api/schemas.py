@@ -54,6 +54,19 @@ class IngestResponse(BaseModel):
     elapsed_ms: float
 
 
+class JobResponse(BaseModel):
+    job_id: str
+    status: str
+    documents_processed: int = 0
+    documents_skipped: int = 0
+    documents_failed: int = 0
+    chunks_created: int = 0
+    elapsed_ms: float = 0.0
+    error: str | None = None
+    created_at: str
+    completed_at: str | None = None
+
+
 class HealthResponse(BaseModel):
     status: str
     qdrant: str
