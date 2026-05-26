@@ -112,6 +112,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     session_store = SessionStore(client=redis_client)
 
     app.state.session_store = session_store
+    app.state.llm_client = llm_client
     app.state.retriever = retriever
     app.state.generator = generator
     app.state.pipeline = pipeline

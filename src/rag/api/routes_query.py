@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from rag.api.dependencies import (
     get_generator,
+    get_llm_client,
     get_retriever,
     get_session_store,
     get_verification_pipeline,
@@ -18,6 +19,8 @@ from rag.api.schemas import (
     VerificationOut,
 )
 from rag.generation.generator import Generator
+from rag.generation.llm_client import LLMClient
+from rag.retrieval.conversational_rewriter import rewrite_with_context
 from rag.retrieval.retriever import Retriever
 from rag.session.store import SessionStore
 from rag.tenancy.auth import get_current_tenant
@@ -33,6 +36,7 @@ async def query(
     tenant: Tenant = Depends(get_current_tenant),
     retriever: Retriever = Depends(get_retriever),
     generator: Generator = Depends(get_generator),
+    llm_client: LLMClient = Depends(get_llm_client),
     verification_pipeline: VerificationPipeline | None = Depends(
         get_verification_pipeline
     ),
@@ -55,8 +59,12 @@ async def query(
             session.session_id, "user", body.question
         )
 
+    search_query = await rewrite_with_context(
+        body.question, session, llm_client
+    )
+
     retrieval_result = retriever.retrieve(
-        body.question, top_k=body.top_k, tenant_id=tenant.id
+        search_query, top_k=body.top_k, tenant_id=tenant.id
     )
     generation_result = await generator.generate(
         body.question, retrieval_result, top_k=body.top_k
