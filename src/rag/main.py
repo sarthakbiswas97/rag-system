@@ -92,7 +92,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         bm25_store=bm25_store,
     )
 
-    db_engine = build_engine(settings.database_url)
+    db_engine = build_engine(
+        settings.database_url,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+    )
     await init_db(db_engine)
     db_session_factory = build_session_factory(db_engine)
 

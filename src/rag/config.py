@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     llm_timeout: float = 30.0
     log_level: str = "INFO"
     database_url: str = "sqlite+aiosqlite:///./data/rag.db"
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
     admin_api_key: str = ""
     redis_url: str = "redis://localhost:6379"
     enable_query_cache: bool = True

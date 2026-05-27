@@ -8,9 +8,14 @@ from qdrant_client.models import (
     Distance,
     FieldCondition,
     Filter,
+    HnswConfigDiff,
     MatchValue,
+    OptimizersConfigDiff,
     PayloadSchemaType,
     PointStruct,
+    ScalarQuantization,
+    ScalarQuantizationConfig,
+    ScalarType,
     VectorParams,
 )
 
@@ -74,6 +79,21 @@ class VectorStore:
             vectors_config=VectorParams(
                 size=vector_size,
                 distance=Distance.DOT,
+                on_disk=True,
+            ),
+            hnsw_config=HnswConfigDiff(
+                m=16,
+                ef_construct=128,
+                full_scan_threshold=10000,
+            ),
+            quantization_config=ScalarQuantization(
+                scalar=ScalarQuantizationConfig(
+                    type=ScalarType.INT8,
+                    always_ram=True,
+                ),
+            ),
+            optimizers_config=OptimizersConfigDiff(
+                indexing_threshold=20000,
             ),
         )
 

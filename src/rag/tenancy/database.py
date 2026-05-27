@@ -14,15 +14,28 @@ from rag.tenancy.models import Base
 logger = logging.getLogger(__name__)
 
 
-def build_engine(database_url: str) -> AsyncEngine:
+def build_engine(
+    database_url: str,
+    pool_size: int = 5,
+    max_overflow: int = 10,
+    pool_recycle: int = 3600,
+) -> AsyncEngine:
     connect_args = {}
+    kwargs: dict = {"echo": False}
+
     if database_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
+    else:
+        # Connection pool tuning for PostgreSQL / MySQL
+        kwargs["pool_size"] = pool_size
+        kwargs["max_overflow"] = max_overflow
+        kwargs["pool_recycle"] = pool_recycle
+        kwargs["pool_pre_ping"] = True
 
     return create_async_engine(
         database_url,
-        echo=False,
         connect_args=connect_args,
+        **kwargs,
     )
 
 
