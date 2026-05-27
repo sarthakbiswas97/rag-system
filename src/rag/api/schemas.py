@@ -71,3 +71,8 @@ class HealthResponse(BaseModel):
     status: str
     qdrant: str
     database: str
+    redis: str = "connected"
+
+
+class LivenessResponse(BaseModel):
+    status: str = "alive"

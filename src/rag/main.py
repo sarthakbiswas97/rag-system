@@ -142,6 +142,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             window_seconds=60,
         )
 
+    app.state._redis_client = redis_client
     app.state.session_store = session_store
     app.state.job_store = job_store
     app.state.query_cache = query_cache
