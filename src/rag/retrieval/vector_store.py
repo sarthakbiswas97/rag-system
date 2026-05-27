@@ -134,7 +134,7 @@ class VectorStore:
         info = self._client.get_collection(self._collection)
         return info.points_count
 
-    def upsert_chunks(self, chunks: Sequence[Chunk], batch_size: int = 100) -> int:
+    def upsert_chunks(self, chunks: Sequence[Chunk], batch_size: int = 256) -> int:
         if not chunks:
             return 0
 

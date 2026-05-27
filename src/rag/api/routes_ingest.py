@@ -129,8 +129,23 @@ def _run_ingestion(
     )
     job_store.update(running_job)
 
+    def _on_progress(
+        docs_done: int, docs_total: int, chunks: int
+    ) -> None:
+        progress_job = IngestionJob(
+            job_id=job.job_id,
+            tenant_id=job.tenant_id,
+            status=JobStatus.RUNNING,
+            documents_processed=docs_done,
+            chunks_created=chunks,
+            created_at=job.created_at,
+        )
+        job_store.update(progress_job)
+
     try:
-        result = pipeline.ingest_documents(paths, tenant_id=tenant_id)
+        result = pipeline.ingest_documents_batch(
+            paths, tenant_id=tenant_id, on_progress=_on_progress
+        )
 
         completed_job = IngestionJob(
             job_id=job.job_id,
