@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from rag.api.rate_limiter import RateLimiter
 from rag.generation.generator import Generator
 from rag.generation.llm_client import LLMClient
 from rag.ingestion.job import JobStore
@@ -50,6 +51,14 @@ def get_session_store(request: Request) -> SessionStore | None:
 
 def get_query_cache(request: Request) -> QueryCache | None:
     return getattr(request.app.state, "query_cache", None)
+
+
+def get_query_rate_limiter(request: Request) -> RateLimiter | None:
+    return getattr(request.app.state, "query_rate_limiter", None)
+
+
+def get_ingest_rate_limiter(request: Request) -> RateLimiter | None:
+    return getattr(request.app.state, "ingest_rate_limiter", None)
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:

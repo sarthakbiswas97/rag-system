@@ -9,7 +9,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from rag.api.dependencies import get_job_store, get_pipeline, get_query_cache
+from rag.api.dependencies import (
+    get_ingest_rate_limiter,
+    get_job_store,
+    get_pipeline,
+    get_query_cache,
+)
+from rag.api.rate_limiter import RateLimiter
 from rag.api.schemas import IngestResponse, JobResponse
 from rag.ingestion.job import IngestionJob, JobStatus, JobStore
 from rag.ingestion.pipeline import IngestionPipeline
@@ -28,7 +34,16 @@ async def ingest(
     tenant: Tenant = Depends(get_current_tenant),
     pipeline: IngestionPipeline = Depends(get_pipeline),
     query_cache: QueryCache | None = Depends(get_query_cache),
+    rate_limiter: RateLimiter | None = Depends(get_ingest_rate_limiter),
 ) -> IngestResponse:
+    if rate_limiter is not None:
+        result = rate_limiter.check(tenant.id, "ingest")
+        if not result.allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded",
+                headers={"Retry-After": str(result.reset_after)},
+            )
     tmp_dir = Path(tempfile.mkdtemp())
     try:
         paths: list[Path] = []

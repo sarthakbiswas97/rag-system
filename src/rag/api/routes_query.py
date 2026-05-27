@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import time
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from rag.api.dependencies import (
     get_generator,
     get_llm_client,
     get_query_cache,
+    get_query_rate_limiter,
     get_retriever,
     get_session_store,
     get_verification_pipeline,
 )
+from rag.api.rate_limiter import RateLimiter
 from rag.api.schemas import (
     CitationOut,
     QueryRequest,
@@ -44,7 +46,17 @@ async def query(
     ),
     session_store: SessionStore | None = Depends(get_session_store),
     query_cache: QueryCache | None = Depends(get_query_cache),
+    rate_limiter: RateLimiter | None = Depends(get_query_rate_limiter),
 ) -> QueryResponse:
+    if rate_limiter is not None:
+        result = rate_limiter.check(tenant.id, "query")
+        if not result.allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded",
+                headers={"Retry-After": str(result.reset_after)},
+            )
+
     start = time.perf_counter()
 
     session_id = body.session_id

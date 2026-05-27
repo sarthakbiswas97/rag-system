@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     enable_query_cache: bool = True
     query_cache_ttl: int = 300  # seconds
+    enable_rate_limiting: bool = True
+    rate_limit_queries: int = 60  # per minute
+    rate_limit_ingestion: int = 10  # per minute
     cors_origins: list[str] = ["http://localhost:3000"]
 
 

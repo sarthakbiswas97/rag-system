@@ -12,6 +12,7 @@ from redis import Redis
 from starlette.requests import Request
 
 from rag.api.middleware import RequestContextMiddleware
+from rag.api.rate_limiter import RateLimiter
 from rag.api.routes_admin import router as admin_router
 from rag.api.routes_health import router as health_router
 from rag.api.routes_ingest import router as ingest_router
@@ -123,9 +124,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             client=redis_client, ttl_seconds=settings.query_cache_ttl
         )
 
+    query_rate_limiter = None
+    ingest_rate_limiter = None
+    if settings.enable_rate_limiting:
+        query_rate_limiter = RateLimiter(
+            client=redis_client,
+            max_requests=settings.rate_limit_queries,
+            window_seconds=60,
+        )
+        ingest_rate_limiter = RateLimiter(
+            client=redis_client,
+            max_requests=settings.rate_limit_ingestion,
+            window_seconds=60,
+        )
+
     app.state.session_store = session_store
     app.state.job_store = job_store
     app.state.query_cache = query_cache
+    app.state.query_rate_limiter = query_rate_limiter
+    app.state.ingest_rate_limiter = ingest_rate_limiter
     app.state.llm_client = llm_client
     app.state.retriever = retriever
     app.state.generator = generator
