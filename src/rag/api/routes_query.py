@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from rag.api.dependencies import (
     get_generator,
     get_llm_client,
+    get_query_cache,
     get_retriever,
     get_session_store,
     get_verification_pipeline,
@@ -20,6 +21,7 @@ from rag.api.schemas import (
 )
 from rag.generation.generator import Generator
 from rag.generation.llm_client import LLMClient
+from rag.retrieval.cache import QueryCache
 from rag.retrieval.conversational_rewriter import rewrite_with_context
 from rag.retrieval.retriever import Retriever
 from rag.session.store import SessionStore
@@ -41,6 +43,7 @@ async def query(
         get_verification_pipeline
     ),
     session_store: SessionStore | None = Depends(get_session_store),
+    query_cache: QueryCache | None = Depends(get_query_cache),
 ) -> QueryResponse:
     start = time.perf_counter()
 
@@ -58,6 +61,13 @@ async def query(
         session = session_store.add_turn(
             session.session_id, "user", body.question
         )
+
+    # Check cache for non-conversational queries (no session context)
+    is_cacheable = session is None and query_cache is not None
+    if is_cacheable:
+        cached = query_cache.get(tenant.id, body.question, body.top_k)
+        if cached is not None:
+            return QueryResponse(**cached)
 
     search_query = await rewrite_with_context(
         body.question, session, llm_client
@@ -122,7 +132,7 @@ async def query(
         for i, c in enumerate(final_citations)
     ]
 
-    return QueryResponse(
+    response = QueryResponse(
         answer=final_answer,
         citations=citations,
         is_abstention=final_is_abstention,
@@ -135,3 +145,10 @@ async def query(
         verification=verification_out,
         session_id=session_id if session is not None else None,
     )
+
+    if is_cacheable:
+        query_cache.set_with_tracking(
+            tenant.id, body.question, body.top_k, response.model_dump()
+        )
+
+    return response

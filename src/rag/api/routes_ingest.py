@@ -9,10 +9,11 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from rag.api.dependencies import get_job_store, get_pipeline
+from rag.api.dependencies import get_job_store, get_pipeline, get_query_cache
 from rag.api.schemas import IngestResponse, JobResponse
 from rag.ingestion.job import IngestionJob, JobStatus, JobStore
 from rag.ingestion.pipeline import IngestionPipeline
+from rag.retrieval.cache import QueryCache
 from rag.tenancy.auth import get_current_tenant
 from rag.tenancy.models import Tenant
 
@@ -26,6 +27,7 @@ async def ingest(
     files: list[UploadFile],
     tenant: Tenant = Depends(get_current_tenant),
     pipeline: IngestionPipeline = Depends(get_pipeline),
+    query_cache: QueryCache | None = Depends(get_query_cache),
 ) -> IngestResponse:
     tmp_dir = Path(tempfile.mkdtemp())
     try:
@@ -37,6 +39,9 @@ async def ingest(
             paths.append(dest)
 
         result = pipeline.ingest_documents(paths, tenant_id=tenant.id)
+
+        if query_cache is not None and result.chunks_created > 0:
+            query_cache.invalidate_tenant(tenant.id)
 
         return IngestResponse(
             documents_processed=result.documents_processed,

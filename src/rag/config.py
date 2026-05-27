@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./data/rag.db"
     admin_api_key: str = ""
     redis_url: str = "redis://localhost:6379"
+    enable_query_cache: bool = True
+    query_cache_ttl: int = 300  # seconds
     cors_origins: list[str] = ["http://localhost:3000"]
 
 

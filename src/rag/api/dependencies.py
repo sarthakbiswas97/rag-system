@@ -9,6 +9,7 @@ from rag.generation.generator import Generator
 from rag.generation.llm_client import LLMClient
 from rag.ingestion.job import JobStore
 from rag.ingestion.pipeline import IngestionPipeline
+from rag.retrieval.cache import QueryCache
 from rag.retrieval.retriever import Retriever
 from rag.retrieval.vector_store import VectorStore
 from rag.session.store import SessionStore
@@ -45,6 +46,10 @@ def get_llm_client(request: Request) -> LLMClient:
 
 def get_session_store(request: Request) -> SessionStore | None:
     return getattr(request.app.state, "session_store", None)
+
+
+def get_query_cache(request: Request) -> QueryCache | None:
+    return getattr(request.app.state, "query_cache", None)
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:

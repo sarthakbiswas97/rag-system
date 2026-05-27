@@ -28,6 +28,7 @@ from rag.ingestion.pipeline import IngestionPipeline
 from rag.observability.logging import setup_logging
 from rag.observability.metrics import APP_INFO
 from rag.retrieval.bm25_store import BM25Store
+from rag.retrieval.cache import QueryCache
 from rag.retrieval.reranker import Reranker
 from rag.retrieval.retriever import Retriever
 from rag.retrieval.vector_store import VectorStore
@@ -116,8 +117,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     session_store = SessionStore(client=redis_client)
     job_store = JobStore(client=redis_client)
 
+    query_cache = None
+    if settings.enable_query_cache:
+        query_cache = QueryCache(
+            client=redis_client, ttl_seconds=settings.query_cache_ttl
+        )
+
     app.state.session_store = session_store
     app.state.job_store = job_store
+    app.state.query_cache = query_cache
     app.state.llm_client = llm_client
     app.state.retriever = retriever
     app.state.generator = generator
