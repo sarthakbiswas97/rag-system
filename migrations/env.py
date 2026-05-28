@@ -1,14 +1,21 @@
 import asyncio
 import os
 from logging.config import fileConfig
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
+from rag.tenancy.database import _prepare_database_url
 from rag.tenancy.models import Base
+
+# Load .env file (pydantic-settings does this for the app, but Alembic
+# runs standalone so we need to load it explicitly)
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -53,10 +60,13 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations with an async engine."""
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    url = config.get_main_option("sqlalchemy.url")
+    url, connect_args = _prepare_database_url(url)
+
+    connectable = create_async_engine(
+        url,
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as connection:

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ingestFiles, type IngestResponse } from "@/lib/api";
+import { useToast } from "@/components/toast";
 
 type UploadState = "idle" | "uploading" | "done" | "error";
 
@@ -30,6 +31,7 @@ export default function DocumentsPage() {
   const [result, setResult] = useState<IngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const addFiles = useCallback((incoming: FileList | File[]) => {
     const arr = Array.from(incoming).filter(
@@ -79,11 +81,13 @@ export default function DocumentsPage() {
       setResult(res);
       setState("done");
       setFiles([]);
+      toast.success(`${res.chunks_created} chunks created from ${res.documents_processed} document${res.documents_processed !== 1 ? "s" : ""}`);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Upload failed";
       setError(message);
       setState("error");
+      toast.error(message);
     }
   };
 
@@ -95,7 +99,7 @@ export default function DocumentsPage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold text-gray-900">Documents</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
       <p className="mt-1 text-sm text-gray-500">
         Upload documents to index them for RAG queries.
       </p>
@@ -109,10 +113,10 @@ export default function DocumentsPage() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-        className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition-colors ${
+        className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-colors ${
           dragOver
             ? "border-blue-400 bg-blue-50"
-            : "border-gray-300 bg-gray-50 hover:border-gray-400"
+            : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
         }`}
       >
         <svg
@@ -128,11 +132,11 @@ export default function DocumentsPage() {
             d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"
           />
         </svg>
-        <p className="text-sm text-gray-600">
-          <span className="font-medium text-blue-600">Click to upload</span>
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold text-blue-600">Click to upload</span>
           {" "}or drag and drop
         </p>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1.5 text-xs text-gray-400">
           PDF, TXT, Markdown, CSV — up to {MAX_FILE_SIZE_MB}MB each
         </p>
         <input
@@ -154,15 +158,15 @@ export default function DocumentsPage() {
           {files.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="flex items-center justify-between rounded-md border bg-white px-4 py-2"
+              className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-gray-900">{file.name}</p>
+                <p className="truncate text-sm font-medium text-gray-900">{file.name}</p>
                 <p className="text-xs text-gray-400">{formatSize(file.size)}</p>
               </div>
               <button
                 onClick={() => removeFile(i)}
-                className="ml-3 text-gray-400 hover:text-red-500"
+                className="ml-3 text-gray-400 hover:text-red-500 transition-colors"
                 disabled={state === "uploading"}
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,7 +179,7 @@ export default function DocumentsPage() {
           <button
             onClick={handleUpload}
             disabled={state === "uploading"}
-            className="mt-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="mt-3 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {state === "uploading" ? "Uploading..." : `Upload ${files.length} file${files.length > 1 ? "s" : ""}`}
           </button>
@@ -184,24 +188,24 @@ export default function DocumentsPage() {
 
       {/* Result */}
       {result && (
-        <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
-          <h3 className="text-sm font-medium text-green-800">Upload complete</h3>
-          <dl className="mt-2 grid grid-cols-2 gap-2 text-sm text-green-700">
+        <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-5">
+          <h3 className="text-sm font-semibold text-green-800">Upload complete</h3>
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
             <div>
-              <dt className="text-xs text-green-600">Processed</dt>
-              <dd className="font-medium">{result.documents_processed}</dd>
+              <dt className="text-xs font-medium text-green-600">Processed</dt>
+              <dd className="font-semibold text-green-800">{result.documents_processed}</dd>
             </div>
             <div>
-              <dt className="text-xs text-green-600">Chunks created</dt>
-              <dd className="font-medium">{result.chunks_created}</dd>
+              <dt className="text-xs font-medium text-green-600">Chunks created</dt>
+              <dd className="font-semibold text-green-800">{result.chunks_created}</dd>
             </div>
             <div>
-              <dt className="text-xs text-green-600">Skipped</dt>
-              <dd className="font-medium">{result.documents_skipped}</dd>
+              <dt className="text-xs font-medium text-green-600">Skipped</dt>
+              <dd className="font-semibold text-green-800">{result.documents_skipped}</dd>
             </div>
             <div>
-              <dt className="text-xs text-green-600">Time</dt>
-              <dd className="font-medium">{(result.elapsed_ms / 1000).toFixed(1)}s</dd>
+              <dt className="text-xs font-medium text-green-600">Time</dt>
+              <dd className="font-semibold text-green-800">{(result.elapsed_ms / 1000).toFixed(1)}s</dd>
             </div>
           </dl>
         </div>
@@ -209,8 +213,8 @@ export default function DocumentsPage() {
 
       {/* Error */}
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-5">
+          <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
       )}
     </div>
