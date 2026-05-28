@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import type { ReactNode } from "react";
@@ -26,46 +27,51 @@ const AuthContext = createContext<AuthState>({
   logout: () => {},
 });
 
+function readStoredKey(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("api_key");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(readStoredKey);
   const [tenant, setTenant] = useState<TenantOut | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchTenant = useCallback(async () => {
-    try {
-      const me = await getMe();
-      setTenant(me);
-    } catch {
-      localStorage.removeItem("api_key");
-      setApiKey(null);
-      setTenant(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [isLoading, setIsLoading] = useState(() => readStoredKey() !== null);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("api_key");
-    if (stored) {
-      setApiKey(stored);
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
+    if (!apiKey || hasFetched.current) return;
+    hasFetched.current = true;
 
-  useEffect(() => {
-    if (apiKey) {
-      fetchTenant();
-    }
-  }, [apiKey, fetchTenant]);
+    let cancelled = false;
+    getMe()
+      .then((me) => {
+        if (!cancelled) setTenant(me);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          localStorage.removeItem("api_key");
+          setApiKey(null);
+          setTenant(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey]);
 
   const login = useCallback((key: string) => {
     localStorage.setItem("api_key", key);
+    hasFetched.current = false;
     setApiKey(key);
+    setIsLoading(true);
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("api_key");
+    hasFetched.current = false;
     setApiKey(null);
     setTenant(null);
   }, []);

@@ -11,7 +11,7 @@ export default function Home() {
   useEffect(() => {
     if (isLoading) return;
     if (apiKey) {
-      router.replace("/chat");
+      router.replace("/home");
     } else {
       router.replace("/login");
     }

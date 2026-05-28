@@ -36,7 +36,7 @@ export default function RegisterPage() {
 
   function handleContinue() {
     login(apiKey);
-    router.push("/chat");
+    router.push("/home");
   }
 
   if (apiKey) {

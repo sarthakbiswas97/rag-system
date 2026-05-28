@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
+  { href: "/home", label: "Home" },
   { href: "/chat", label: "Chat" },
   { href: "/documents", label: "Documents" },
   { href: "/settings", label: "Settings" },

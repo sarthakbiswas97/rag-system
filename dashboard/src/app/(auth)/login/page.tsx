@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       await getMe();
       login(trimmed);
-      router.push("/chat");
+      router.push("/home");
     } catch (err) {
       localStorage.removeItem("api_key");
       if (err instanceof ApiError) {

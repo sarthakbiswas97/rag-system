@@ -87,6 +87,24 @@ export function getMeStats(): Promise<TenantStats> {
   return request("/v1/me/stats");
 }
 
+export interface UsageEvent {
+  event_type: string;
+  value: number;
+  elapsed_ms: number | null;
+  created_at: string;
+}
+
+export interface UsageSummary {
+  tenant_id: string;
+  period: string;
+  totals: Record<string, number>;
+  recent: UsageEvent[];
+}
+
+export function getMeUsage(days: number = 30): Promise<UsageSummary> {
+  return request(`/v1/me/usage?days=${days}`);
+}
+
 export function updateMe(payload: { name: string }): Promise<TenantOut> {
   return request("/v1/me", {
     method: "PUT",
@@ -141,6 +159,73 @@ export function query(
   return request("/v1/query", {
     method: "POST",
     body: JSON.stringify({ question, top_k }),
+  });
+}
+
+// Admin
+// Admin endpoints use a separate admin API key, passed explicitly.
+
+function adminRequest<T>(
+  path: string,
+  adminKey: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "X-API-Key": adminKey,
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (
+    options.body &&
+    typeof options.body === "string" &&
+    !headers["Content-Type"]
+  ) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  return fetch(`${API_BASE}${path}`, { ...options, headers }).then(
+    async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new ApiError(res.status, body.detail || "Request failed");
+      }
+      return res.json();
+    },
+  );
+}
+
+export interface TenantListResponse {
+  tenants: TenantOut[];
+  count: number;
+}
+
+export interface CreateTenantPayload {
+  name: string;
+  email?: string;
+}
+
+export function adminListTenants(
+  adminKey: string,
+): Promise<TenantListResponse> {
+  return adminRequest("/admin/tenants", adminKey);
+}
+
+export function adminCreateTenant(
+  adminKey: string,
+  payload: CreateTenantPayload,
+): Promise<RegisterResponse> {
+  return adminRequest("/admin/tenants", adminKey, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminDeleteTenant(
+  adminKey: string,
+  tenantId: string,
+): Promise<TenantOut> {
+  return adminRequest(`/admin/tenants/${tenantId}`, adminKey, {
+    method: "DELETE",
   });
 }
 
