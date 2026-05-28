@@ -1,4 +1,4 @@
-.PHONY: install format lint test eval run docker-up docker-down docker-build
+.PHONY: install format lint test eval run docker-up docker-down docker-build db-migrate db-upgrade db-downgrade dev
 
 install:
 	uv sync --all-extras
@@ -28,3 +28,17 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+db-migrate:
+	uv run alembic revision --autogenerate -m "$(MSG)"
+
+db-upgrade:
+	uv run alembic upgrade head
+
+db-downgrade:
+	uv run alembic downgrade -1
+
+dev:
+	docker compose up -d postgres redis qdrant
+	@echo "Infrastructure running. Start backend: make run"
+	@echo "Start frontend: cd dashboard && npm run dev"
