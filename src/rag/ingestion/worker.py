@@ -130,6 +130,7 @@ class IngestionWorker:
             self._run_with_retries(job, paths, tmp_dir, tenant_id)
         finally:
             self._release_tenant_slot(tenant_id)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def _run_with_retries(
         self,
@@ -206,5 +207,3 @@ class IngestionWorker:
             "Async ingestion failed permanently",
             extra={"job_id": job.job_id, "tenant_id": tenant_id},
         )
-
-        shutil.rmtree(tmp_dir, ignore_errors=True)
