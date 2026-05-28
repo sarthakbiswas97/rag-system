@@ -4,7 +4,7 @@ import enum
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -28,6 +28,11 @@ class FineTuneStatus(enum.StrEnum):
 class ModelType(enum.StrEnum):
     EMBEDDING = "embedding"
     LLM = "llm"
+
+
+class EventType(enum.StrEnum):
+    QUERY = "query"
+    INGEST = "ingest"
 
 
 class Tenant(Base):
@@ -79,9 +84,7 @@ class FineTuneJob(Base):
     status: Mapped[FineTuneStatus] = mapped_column(
         Enum(FineTuneStatus), default=FineTuneStatus.PENDING, nullable=False
     )
-    model_type: Mapped[ModelType] = mapped_column(
-        Enum(ModelType), nullable=False
-    )
+    model_type: Mapped[ModelType] = mapped_column(Enum(ModelType), nullable=False)
     config: Mapped[str | None] = mapped_column(Text, nullable=True)
     metrics: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -97,4 +100,27 @@ class FineTuneJob(Base):
     __table_args__ = (
         Index("ix_fine_tune_jobs_tenant_id", "tenant_id"),
         Index("ix_fine_tune_jobs_status", "status"),
+    )
+
+
+class UsageEvent(Base):
+    __tablename__ = "usage_events"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid4())
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("tenants.id"), nullable=False
+    )
+    event_type: Mapped[EventType] = mapped_column(Enum(EventType), nullable=False)
+    value: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    elapsed_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC), nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_usage_events_tenant_id", "tenant_id"),
+        Index("ix_usage_events_event_type", "event_type"),
+        Index("ix_usage_events_created_at", "created_at"),
     )

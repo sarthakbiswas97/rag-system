@@ -10,6 +10,7 @@ from rag.generation.generator import Generator
 from rag.generation.llm_client import LLMClient
 from rag.ingestion.job import JobStore
 from rag.ingestion.pipeline import IngestionPipeline
+from rag.ingestion.worker import IngestionWorker
 from rag.retrieval.cache import QueryCache
 from rag.retrieval.retriever import Retriever
 from rag.retrieval.vector_store import VectorStore
@@ -59,6 +60,10 @@ def get_query_rate_limiter(request: Request) -> RateLimiter | None:
 
 def get_ingest_rate_limiter(request: Request) -> RateLimiter | None:
     return getattr(request.app.state, "ingest_rate_limiter", None)
+
+
+def get_ingestion_worker(request: Request) -> IngestionWorker:
+    return request.app.state.ingestion_worker
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:

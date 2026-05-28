@@ -26,6 +26,7 @@ from rag.generation.llm_client import LLMClient
 from rag.ingestion.embedder import Embedder
 from rag.ingestion.job import JobStore
 from rag.ingestion.pipeline import IngestionPipeline
+from rag.ingestion.worker import IngestionWorker, WorkerConfig
 from rag.observability.logging import setup_logging
 from rag.observability.metrics import APP_INFO
 from rag.retrieval.bm25_store import BM25Store
@@ -142,9 +143,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             window_seconds=60,
         )
 
+    ingestion_worker = IngestionWorker(
+        pipeline=pipeline,
+        job_store=job_store,
+        redis_client=redis_client,
+        config=WorkerConfig(),
+    )
+
     app.state._redis_client = redis_client
     app.state.session_store = session_store
     app.state.job_store = job_store
+    app.state.ingestion_worker = ingestion_worker
     app.state.query_cache = query_cache
     app.state.query_rate_limiter = query_rate_limiter
     app.state.ingest_rate_limiter = ingest_rate_limiter
@@ -160,6 +169,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Application started")
     yield
 
+    ingestion_worker.shutdown()
     redis_client.close()
     await close_db(db_engine)
     logger.info("Application shutting down")

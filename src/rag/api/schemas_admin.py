@@ -39,9 +39,7 @@ class TenantOut(BaseModel):
 
 class CreateTenantResponse(BaseModel):
     tenant: TenantOut
-    api_key: str = Field(
-        ..., description="Shown once at creation. Store it securely."
-    )
+    api_key: str = Field(..., description="Shown once at creation. Store it securely.")
 
 
 class TenantListResponse(BaseModel):
@@ -63,3 +61,17 @@ class UpdateTenantRequest(BaseModel):
 class TenantStatsOut(BaseModel):
     tenant_id: str
     chunk_count: int
+
+
+class UsageEventOut(BaseModel):
+    event_type: str
+    value: int
+    elapsed_ms: float | None
+    created_at: str
+
+
+class UsageSummaryOut(BaseModel):
+    tenant_id: str
+    period: str
+    totals: dict[str, int]
+    recent: list[UsageEventOut]
