@@ -24,7 +24,7 @@ from rag.api.schemas import (
     VerificationOut,
 )
 from rag.generation.generator import Generator
-from rag.generation.llm_client import LLMClient
+from rag.generation.llm_client import LLMClient, LLMServiceError
 from rag.retrieval.cache import QueryCache
 from rag.retrieval.conversational_rewriter import rewrite_with_context
 from rag.retrieval.retriever import Retriever
@@ -88,9 +88,12 @@ async def query(
     retrieval_result = retriever.retrieve(
         search_query, top_k=body.top_k, tenant_id=tenant.id
     )
-    generation_result = await generator.generate(
-        body.question, retrieval_result, top_k=body.top_k
-    )
+    try:
+        generation_result = await generator.generate(
+            body.question, retrieval_result, top_k=body.top_k
+        )
+    except LLMServiceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     verification_out = None
 

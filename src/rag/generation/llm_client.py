@@ -3,11 +3,15 @@ from __future__ import annotations
 import logging
 import time
 
-from openai import AsyncOpenAI
+from openai import APIConnectionError, AsyncOpenAI, AuthenticationError, RateLimitError
 
 from rag.models.generation import LLMResponse
 
 logger = logging.getLogger(__name__)
+
+
+class LLMServiceError(Exception):
+    """Raised when the LLM provider returns an error."""
 
 
 class LLMClient:
@@ -43,15 +47,22 @@ class LLMClient:
     ) -> LLMResponse:
         start = time.perf_counter()
 
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=self._temperature,
-            max_tokens=self._max_tokens,
-        )
+        try:
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
+            )
+        except AuthenticationError as exc:
+            raise LLMServiceError("LLM authentication failed — check API key") from exc
+        except RateLimitError as exc:
+            raise LLMServiceError("LLM rate limit exceeded — try again later") from exc
+        except APIConnectionError as exc:
+            raise LLMServiceError("LLM service unreachable") from exc
 
         elapsed_ms = (time.perf_counter() - start) * 1000
 
