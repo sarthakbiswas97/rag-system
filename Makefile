@@ -1,4 +1,4 @@
-.PHONY: install format lint test eval run docker-up docker-down docker-build db-migrate db-upgrade db-downgrade dev
+.PHONY: install format lint test eval run docker-up docker-down docker-build db-migrate db-upgrade db-downgrade dev seed-bench load-test
 
 install:
 	uv sync --all-extras
@@ -42,3 +42,9 @@ dev:
 	docker compose up -d postgres redis qdrant
 	@echo "Infrastructure running. Start backend: make run"
 	@echo "Start frontend: cd dashboard && npm run dev"
+
+seed-bench:
+	uv run python scripts/seed_benchmark.py --num-docs $(or $(DOCS),100)
+
+load-test:
+	uv run locust -f tests/load/locustfile.py --host http://localhost:8000 --headless -u $(or $(USERS),20) -r $(or $(RATE),5) --run-time $(or $(TIME),60s) --csv=benchmark_results
