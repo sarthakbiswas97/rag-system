@@ -76,3 +76,19 @@ class HealthResponse(BaseModel):
 
 class LivenessResponse(BaseModel):
     status: str = "alive"
+
+
+class DocumentOut(BaseModel):
+    id: str
+    source_file: str
+    chunk_count: int
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentOut]
+    total: int
+
+

@@ -35,6 +35,12 @@ class EventType(enum.StrEnum):
     INGEST = "ingest"
 
 
+class DocumentStatus(enum.StrEnum):
+    ACTIVE = "active"
+    UPDATING = "updating"
+    DELETED = "deleted"
+
+
 class Tenant(Base):
     __tablename__ = "tenants"
 
@@ -65,10 +71,47 @@ class Tenant(Base):
     fine_tune_jobs: Mapped[list[FineTuneJob]] = relationship(
         back_populates="tenant", lazy="selectin"
     )
+    documents: Mapped[list[Document]] = relationship(
+        back_populates="tenant", lazy="selectin"
+    )
 
     __table_args__ = (
         Index("ix_tenants_api_key_hash", "api_key_hash"),
         Index("ix_tenants_status", "status"),
+    )
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid4())
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("tenants.id"), nullable=False
+    )
+    source_file: Mapped[str] = mapped_column(String(512), nullable=False)
+    chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    status: Mapped[DocumentStatus] = mapped_column(
+        Enum(DocumentStatus), default=DocumentStatus.ACTIVE, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(tz=UTC), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(tz=UTC),
+        onupdate=lambda: datetime.now(tz=UTC),
+        nullable=False,
+    )
+
+    tenant: Mapped[Tenant] = relationship(back_populates="documents")
+
+    __table_args__ = (
+        Index("ix_documents_tenant_id", "tenant_id"),
+        Index("ix_documents_tenant_id_status", "tenant_id", "status"),
+        Index("ix_documents_tenant_id_source_file", "tenant_id", "source_file"),
     )
 
 
