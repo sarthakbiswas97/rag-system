@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from rag.generation.llm_client import LLMClient
+from rag.generation.llm_client import LLMClient, LLMServiceError
 
 
 def _mock_response(content: str = "Test response") -> MagicMock:
@@ -116,3 +116,59 @@ class TestLLMClientGenerate:
 
         assert result.prompt_tokens == 0
         assert result.completion_tokens == 0
+
+
+class TestLLMClientStreamGenerate:
+    @pytest.fixture()
+    def client(self) -> LLMClient:
+        return LLMClient(api_key="test-key")
+
+    @pytest.mark.asyncio
+    async def test_yields_tokens_then_response(self, client: LLMClient) -> None:
+        chunk1 = MagicMock()
+        chunk1.choices = [MagicMock(delta=MagicMock(content="Hello "))]
+        chunk2 = MagicMock()
+        chunk2.choices = [MagicMock(delta=MagicMock(content="world"))]
+        chunk3 = MagicMock()
+        chunk3.choices = [MagicMock(delta=MagicMock(content=None))]
+
+        async def _mock_stream():
+            for c in [chunk1, chunk2, chunk3]:
+                yield c
+
+        with patch.object(
+            client._client.chat.completions,
+            "create",
+            new=AsyncMock(return_value=_mock_stream()),
+        ):
+            tokens = []
+            final = None
+            async for item in client.stream_generate("sys", "usr"):
+                if isinstance(item, str):
+                    tokens.append(item)
+                else:
+                    final = item
+
+        assert tokens == ["Hello ", "world"]
+        assert final is not None
+        assert final.content == "Hello world"
+        assert final.model == "gpt-4o-mini"
+        assert final.completion_tokens == 2
+
+    @pytest.mark.asyncio
+    async def test_raises_on_auth_error(self, client: LLMClient) -> None:
+        from openai import AuthenticationError
+
+        response = MagicMock()
+        response.status_code = 401
+        with patch.object(
+            client._client.chat.completions,
+            "create",
+            new=AsyncMock(
+                side_effect=AuthenticationError(
+                    "bad key", response=response, body=None
+                )
+            ),
+        ), pytest.raises(LLMServiceError):
+            async for _ in client.stream_generate("sys", "usr"):
+                pass
