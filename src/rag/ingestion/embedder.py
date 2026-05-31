@@ -15,17 +15,33 @@ logger = logging.getLogger(__name__)
 
 class Embedder:
     def __init__(
-        self, model_name: str = "BAAI/bge-small-en-v1.5", batch_size: int = 64
+        self,
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        batch_size: int = 64,
+        backend: str = "pytorch",
+        onnx_provider: str = "CPUExecutionProvider",
     ) -> None:
         self._batch_size = batch_size
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self._model = SentenceTransformer(model_name, device=device)
+
+        if backend == "onnx":
+            model_kwargs = {"provider": onnx_provider}
+            self._model = SentenceTransformer(
+                model_name,
+                device=device,
+                backend="onnx",
+                model_kwargs=model_kwargs,
+            )
+        else:
+            self._model = SentenceTransformer(model_name, device=device)
+
         self._dimension = self._model.get_embedding_dimension()
 
         logger.info(
             "Embedder initialized",
             extra={
                 "model": model_name,
+                "backend": backend,
                 "device": device,
                 "dimension": self._dimension,
             },
