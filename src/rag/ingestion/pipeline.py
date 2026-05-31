@@ -7,11 +7,11 @@ from pathlib import Path
 
 from rag.ingestion.chunker import chunk_document
 from rag.ingestion.embedder import Embedder
-from rag.ingestion.hasher import ContentHasher
+from rag.ingestion.hasher import ContentHasher, compute_hash
 from rag.ingestion.loader import SUPPORTED_EXTENSIONS, load_document
 from rag.models.document import Chunk
-from rag.models.ingestion import IngestionResult
-from rag.retrieval.bm25_store import BM25Store
+from rag.models.ingestion import DocumentInfo, IngestionResult
+from rag.retrieval.sparse_embedder import SparseEmbedder
 from rag.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -27,14 +27,14 @@ class IngestionPipeline:
         vector_store: VectorStore,
         chunk_size: int = 512,
         chunk_overlap: int = 64,
-        bm25_store: BM25Store | None = None,
+        sparse_embedder: SparseEmbedder | None = None,
     ) -> None:
         self._embedder = embedder
         self._vector_store = vector_store
         self._chunk_size = chunk_size
         self._chunk_overlap = chunk_overlap
         self._hasher = ContentHasher()
-        self._bm25_store = bm25_store
+        self._sparse_embedder = sparse_embedder
 
     def ingest_documents(
         self, paths: Sequence[Path], tenant_id: str = ""
@@ -44,6 +44,7 @@ class IngestionPipeline:
         skipped = 0
         failed = 0
         total_chunks = 0
+        processed_docs: list[DocumentInfo] = []
 
         for path in paths:
             try:
@@ -69,19 +70,27 @@ class IngestionPipeline:
                     continue
 
                 embedded = self._embedder.embed_chunks(chunks)
+                embedded = self._attach_sparse_embeddings(embedded)
                 self._vector_store.upsert_chunks(embedded)
+                self._upsert_sparse_vectors(embedded)
 
-                if self._bm25_store is not None:
-                    self._bm25_store.add_chunks(embedded)
-
+                chunk_count = len(embedded)
                 processed += 1
-                total_chunks += len(embedded)
+                total_chunks += chunk_count
+                processed_docs.append(
+                    DocumentInfo(
+                        document_id=doc.document_id,
+                        source_file=Path(doc.source_path).name,
+                        content_hash=compute_hash(doc.content),
+                        chunk_count=chunk_count,
+                    )
+                )
 
                 logger.info(
                     "Ingested document",
                     extra={
                         "path": str(path),
-                        "chunks": len(embedded),
+                        "chunks": chunk_count,
                     },
                 )
 
@@ -100,6 +109,7 @@ class IngestionPipeline:
             documents_failed=failed,
             chunks_created=total_chunks,
             elapsed_ms=round(elapsed_ms, 1),
+            processed_documents=tuple(processed_docs),
         )
 
         logger.info(
@@ -133,6 +143,8 @@ class IngestionPipeline:
         skipped = 0
         failed = 0
         total_docs = len(paths)
+        processed_ids: list[str] = []
+        doc_meta: dict[str, tuple[str, str]] = {}
 
         # Phase 1: Load and chunk all documents
         all_chunks: list[Chunk] = []
@@ -160,6 +172,11 @@ class IngestionPipeline:
 
                 all_chunks.extend(chunks)
                 processed += 1
+                processed_ids.append(doc.document_id)
+                doc_meta[doc.document_id] = (
+                    Path(doc.source_path).name,
+                    compute_hash(doc.content),
+                )
 
                 if on_progress is not None:
                     on_progress(processed + skipped + failed, total_docs, 0)
@@ -204,15 +221,28 @@ class IngestionPipeline:
         )
 
         # Phase 5: Upsert to vector store
+        embedded = self._attach_sparse_embeddings(embedded)
         self._vector_store.upsert_chunks(embedded)
-
-        if self._bm25_store is not None:
-            self._bm25_store.add_chunks(embedded)
+        self._upsert_sparse_vectors(embedded)
 
         total_chunks = len(embedded)
 
         if on_progress is not None:
             on_progress(total_docs, total_docs, total_chunks)
+
+        # Compute per-document chunk counts from the (restored) embedded chunks
+        from collections import Counter
+
+        chunk_counts = Counter(c.document_id for c in embedded)
+        processed_docs = tuple(
+            DocumentInfo(
+                document_id=doc_id,
+                source_file=doc_meta[doc_id][0],
+                content_hash=doc_meta[doc_id][1],
+                chunk_count=chunk_counts[doc_id],
+            )
+            for doc_id in processed_ids
+        )
 
         elapsed_ms = (time.perf_counter() - start) * 1000
 
@@ -222,6 +252,7 @@ class IngestionPipeline:
             documents_failed=failed,
             chunks_created=total_chunks,
             elapsed_ms=round(elapsed_ms, 1),
+            processed_documents=processed_docs,
         )
 
         logger.info(
@@ -236,6 +267,38 @@ class IngestionPipeline:
         )
 
         return result
+
+    def _attach_sparse_embeddings(
+        self, chunks: tuple[Chunk, ...]
+    ) -> tuple[Chunk, ...]:
+        if self._sparse_embedder is None:
+            return chunks
+        sparse_embeddings = self._sparse_embedder.embed_texts(
+            [c.text for c in chunks]
+        )
+        return tuple(
+            Chunk(
+                chunk_id=c.chunk_id,
+                document_id=c.document_id,
+                text=c.text,
+                metadata=c.metadata,
+                embedding=c.embedding,
+                sparse_embedding=se.to_qdrant(),
+            )
+            for c, se in zip(chunks, sparse_embeddings, strict=True)
+        )
+
+    def _upsert_sparse_vectors(self, chunks: tuple[Chunk, ...]) -> None:
+        if self._sparse_embedder is None:
+            return
+        chunk_ids = [c.chunk_id for c in chunks if c.sparse_embedding is not None]
+        sparse_vectors = [
+            c.sparse_embedding
+            for c in chunks
+            if c.sparse_embedding is not None
+        ]
+        if chunk_ids:
+            self._vector_store.upsert_sparse_vectors(chunk_ids, sparse_vectors)
 
     def ingest_directory(
         self, directory: Path, tenant_id: str = ""

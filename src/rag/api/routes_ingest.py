@@ -23,6 +23,7 @@ from rag.ingestion.pipeline import IngestionPipeline
 from rag.ingestion.worker import IngestionWorker
 from rag.retrieval.cache import QueryCache
 from rag.tenancy.auth import get_current_tenant
+from rag.tenancy.document_repository import DocumentRepository
 from rag.tenancy.models import EventType, Tenant
 from rag.tenancy.usage import UsageTracker
 
@@ -63,6 +64,13 @@ async def ingest(
     paths, tmp_dir = await _save_uploads(files)
     try:
         result = pipeline.ingest_documents(paths, tenant_id=tenant.id)
+
+        # Create document records for processed documents in a single transaction
+        if result.processed_documents:
+            doc_repo = DocumentRepository(session)
+            await doc_repo.create_many(
+                list(result.processed_documents), tenant_id=tenant.id
+            )
 
         if query_cache is not None and result.chunks_created > 0:
             query_cache.invalidate_tenant(tenant.id)

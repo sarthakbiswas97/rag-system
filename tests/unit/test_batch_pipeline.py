@@ -10,9 +10,15 @@ from rag.ingestion.pipeline import IngestionPipeline
 from rag.models.document import Chunk, ChunkMetadata
 
 
-def _make_doc(content: str = "test content") -> MagicMock:
+def _make_doc(
+    content: str = "test content",
+    doc_id: str = "doc-1",
+    source_path: str = "test.txt",
+) -> MagicMock:
     doc = MagicMock()
     doc.content = content
+    doc.document_id = doc_id
+    doc.source_path = source_path
     return doc
 
 
@@ -203,18 +209,19 @@ class TestBatchIngestion:
 
     @patch("rag.ingestion.pipeline.load_document")
     @patch("rag.ingestion.pipeline.chunk_document")
-    def test_batch_populates_bm25(
+    def test_batch_populates_sparse_vectors(
         self,
         mock_chunk: MagicMock,
         mock_load: MagicMock,
         mock_embedder: MagicMock,
         mock_vector_store: MagicMock,
     ) -> None:
-        bm25 = MagicMock()
+        sparse = MagicMock()
+        sparse.embed_texts.return_value = [MagicMock()]
         pipeline = IngestionPipeline(
             embedder=mock_embedder,
             vector_store=mock_vector_store,
-            bm25_store=bm25,
+            sparse_embedder=sparse,
         )
 
         mock_load.return_value = _make_doc()
@@ -222,7 +229,7 @@ class TestBatchIngestion:
 
         pipeline.ingest_documents_batch([Path("a.txt")])
 
-        bm25.add_chunks.assert_called_once()
+        sparse.embed_texts.assert_called_once()
 
     @patch("rag.ingestion.pipeline.load_document")
     @patch("rag.ingestion.pipeline.chunk_document")
@@ -237,3 +244,42 @@ class TestBatchIngestion:
 
         result = pipeline.ingest_documents_batch([Path("a.txt")])
         assert result.elapsed_ms > 0
+
+    @patch("rag.ingestion.pipeline.load_document")
+    @patch("rag.ingestion.pipeline.chunk_document")
+    def test_batch_populates_processed_documents(
+        self,
+        mock_chunk: MagicMock,
+        mock_load: MagicMock,
+        pipeline: IngestionPipeline,
+    ) -> None:
+        def _load(path):
+            return _make_doc(source_path=str(path))
+
+        mock_load.side_effect = _load
+        mock_chunk.return_value = [_make_chunk("text", "c1")]
+
+        result = pipeline.ingest_documents_batch([Path("a.txt")])
+
+        assert len(result.processed_documents) == 1
+        info = result.processed_documents[0]
+        assert info.document_id == "doc-1"
+        assert info.source_file == "a.txt"
+        assert info.chunk_count == 1
+        assert info.content_hash  # non-empty hash
+
+    @patch("rag.ingestion.pipeline.load_document")
+    @patch("rag.ingestion.pipeline.chunk_document")
+    def test_batch_skipped_docs_not_in_processed_documents(
+        self,
+        mock_chunk: MagicMock,
+        mock_load: MagicMock,
+        pipeline: IngestionPipeline,
+    ) -> None:
+        mock_load.return_value = _make_doc()
+        mock_chunk.return_value = []  # no chunks → skipped
+
+        result = pipeline.ingest_documents_batch([Path("empty.txt")])
+
+        assert result.documents_skipped == 1
+        assert len(result.processed_documents) == 0
