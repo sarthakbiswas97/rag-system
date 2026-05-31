@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from qdrant_client.models import SparseVector
+
 
 @dataclass(frozen=True)
 class ChunkMetadata:
@@ -24,6 +26,7 @@ class Chunk:
         default_factory=lambda: ChunkMetadata(source_file="")
     )
     embedding: tuple[float, ...] | None = None
+    sparse_embedding: SparseVector | None = None
 
 
 @dataclass(frozen=True)

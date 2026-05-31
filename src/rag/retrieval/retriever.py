@@ -5,9 +5,9 @@ import time
 
 from rag.ingestion.embedder import Embedder
 from rag.models.retrieval import RetrievalResult
-from rag.retrieval.bm25_store import BM25Store
 from rag.retrieval.hybrid import reciprocal_rank_fusion
 from rag.retrieval.reranker import Reranker
+from rag.retrieval.sparse_embedder import SparseEmbedder
 from rag.retrieval.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -19,12 +19,12 @@ class Retriever:
         embedder: Embedder,
         vector_store: VectorStore,
         reranker: Reranker | None = None,
-        bm25_store: BM25Store | None = None,
+        sparse_embedder: SparseEmbedder | None = None,
     ) -> None:
         self._embedder = embedder
         self._vector_store = vector_store
         self._reranker = reranker
-        self._bm25_store = bm25_store
+        self._sparse_embedder = sparse_embedder
 
     def retrieve(
         self, query: str, top_k: int = 5, tenant_id: str = ""
@@ -39,11 +39,12 @@ class Retriever:
             query_embedding, top_k=search_k, tenant_id=tenant_id
         )
 
-        if self._bm25_store is not None:
-            bm25_results = self._bm25_store.search(
-                query, top_k=search_k, tenant_id=tenant_id
+        if self._sparse_embedder is not None:
+            sparse_query = self._sparse_embedder.embed_query(query)
+            sparse_results = self._vector_store.search_sparse(
+                sparse_query.to_qdrant(), top_k=search_k, tenant_id=tenant_id
             )
-            scored_chunks = reciprocal_rank_fusion(vector_results, bm25_results)
+            scored_chunks = reciprocal_rank_fusion(vector_results, sparse_results)
             if not self._reranker:
                 scored_chunks = scored_chunks[:top_k]
         else:
@@ -59,7 +60,7 @@ class Retriever:
             extra={
                 "query": query[:100],
                 "top_k": top_k,
-                "hybrid": self._bm25_store is not None,
+                "hybrid": self._sparse_embedder is not None,
                 "reranked": self._reranker is not None,
                 "results": len(scored_chunks),
                 "elapsed_ms": round(elapsed_ms, 1),

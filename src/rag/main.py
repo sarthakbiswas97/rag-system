@@ -14,6 +14,7 @@ from starlette.requests import Request
 from rag.api.middleware import RequestContextMiddleware
 from rag.api.rate_limiter import RateLimiter
 from rag.api.routes_admin import router as admin_router
+from rag.api.routes_documents import router as documents_router
 from rag.api.routes_health import router as health_router
 from rag.api.routes_ingest import router as ingest_router
 from rag.api.routes_metrics import router as metrics_router
@@ -29,10 +30,10 @@ from rag.ingestion.pipeline import IngestionPipeline
 from rag.ingestion.worker import IngestionWorker, WorkerConfig
 from rag.observability.logging import setup_logging
 from rag.observability.metrics import APP_INFO
-from rag.retrieval.bm25_store import BM25Store
 from rag.retrieval.cache import QueryCache
 from rag.retrieval.reranker import Reranker
 from rag.retrieval.retriever import Retriever
+from rag.retrieval.sparse_embedder import SparseEmbedder
 from rag.retrieval.vector_store import VectorStore
 from rag.session.store import SessionStore
 from rag.tenancy.database import build_engine, build_session_factory, close_db, init_db
@@ -54,35 +55,63 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     embedder = Embedder(
         model_name=settings.embedding_model,
         batch_size=settings.embedding_batch_size,
+        backend=settings.embedding_backend,
+        onnx_provider=settings.embedding_onnx_provider,
     )
 
     client = QdrantClient(
         host=settings.qdrant_host,
         port=settings.qdrant_port,
     )
-    vector_store = VectorStore(client=client, collection=settings.qdrant_collection)
+    vector_store = VectorStore(
+        client=client,
+        collection=settings.qdrant_collection,
+        shard_number=settings.qdrant_shard_number,
+        replication_factor=settings.qdrant_replication_factor,
+    )
     vector_store.create_collection(vector_size=embedder.dimension)
 
     reranker = None
     if settings.enable_reranking:
         reranker = Reranker(model_name=settings.reranker_model)
 
-    bm25_store = BM25Store() if settings.enable_hybrid_search else None
+    sparse_embedder = (
+        SparseEmbedder(max_vocab_size=settings.sparse_vocab_size)
+        if settings.enable_sparse_search
+        else None
+    )
 
     retriever = Retriever(
         embedder=embedder,
         vector_store=vector_store,
         reranker=reranker,
-        bm25_store=bm25_store,
+        sparse_embedder=sparse_embedder,
     )
 
-    llm_client = LLMClient(
-        api_key=settings.openai_api_key,
-        model=settings.llm_model,
-        temperature=settings.llm_temperature,
-        max_tokens=settings.llm_max_tokens,
-        timeout=settings.llm_timeout,
-    )
+    if settings.llm_fallback_model:
+        fallback_client = LLMClient(
+            api_key=settings.llm_fallback_api_key or settings.openai_api_key,
+            model=settings.llm_fallback_model,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+            timeout=settings.llm_timeout,
+        )
+        llm_client = LLMClient(
+            api_key=settings.openai_api_key,
+            model=settings.llm_model,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+            timeout=settings.llm_timeout,
+            fallback_client=fallback_client,
+        )
+    else:
+        llm_client = LLMClient(
+            api_key=settings.openai_api_key,
+            model=settings.llm_model,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+            timeout=settings.llm_timeout,
+        )
     generator = Generator(llm_client=llm_client)
 
     pipeline = IngestionPipeline(
@@ -90,7 +119,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         vector_store=vector_store,
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
-        bm25_store=bm25_store,
+        sparse_embedder=sparse_embedder,
     )
 
     db_engine = build_engine(
@@ -192,9 +221,25 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware)
 
+    _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+
+    @app.middleware("http")
+    async def limit_upload_size(request: Request, call_next):
+        if request.method == "POST":
+            path = request.url.path
+            if path in ("/v1/ingest", "/v1/documents"):
+                content_length = request.headers.get("content-length")
+                if content_length and int(content_length) > _MAX_UPLOAD_BYTES:
+                    return JSONResponse(
+                        status_code=413,
+                        content={"error": "Upload too large. Max 50MB."},
+                    )
+        return await call_next(request)
+
     app.include_router(register_router)
     app.include_router(query_router)
     app.include_router(ingest_router)
+    app.include_router(documents_router)
     app.include_router(health_router)
     app.include_router(admin_router)
     app.include_router(tenant_router)
