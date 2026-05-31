@@ -59,9 +59,7 @@ class TestSparseEmbedder:
 
         # value = 1 + log(tf) = 1 + log(2) ≈ 1.693
         expected = 1.0 + math.log(2)
-        assert math.isclose(
-            values_dict[query.indices[0]], expected, rel_tol=1e-9
-        )
+        assert math.isclose(values_dict[query.indices[0]], expected, rel_tol=1e-9)
 
     def test_query_ignores_unknown_tokens(self) -> None:
         embedder = SparseEmbedder()

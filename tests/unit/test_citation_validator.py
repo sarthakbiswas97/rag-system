@@ -103,10 +103,12 @@ class TestCitationValidator:
         assert results[0].entailment_score == 0.0
 
     def test_mixed_citations(self) -> None:
-        validator = _make_validator([
-            ("entailment", 0.9),
-            ("contradiction", 0.1),
-        ])
+        validator = _make_validator(
+            [
+                ("entailment", 0.9),
+                ("contradiction", 0.1),
+            ]
+        )
         chunks = [
             _make_scored_chunk("c1", "Paris is France's capital.", 0.9),
             _make_scored_chunk("c2", "Berlin is in Germany.", 0.8),
@@ -167,11 +169,13 @@ class TestCitationValidator:
 
 class TestFilterSupportedCitations:
     def test_filters_unsupported(self) -> None:
-        validator = _make_validator([
-            ("entailment", 0.9),
-            ("contradiction", 0.1),
-            ("entailment", 0.85),
-        ])
+        validator = _make_validator(
+            [
+                ("entailment", 0.9),
+                ("contradiction", 0.1),
+                ("entailment", 0.85),
+            ]
+        )
         chunks = [
             _make_scored_chunk("c1", "text1", 0.9),
             _make_scored_chunk("c2", "text2", 0.8),

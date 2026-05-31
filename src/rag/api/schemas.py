@@ -90,5 +90,3 @@ class DocumentOut(BaseModel):
 class DocumentListResponse(BaseModel):
     documents: list[DocumentOut]
     total: int
-
-

@@ -65,9 +65,7 @@ def compute_faithfulness(
 
     entailed = 0
     for sentence in sentences:
-        _label, score = entailment_checker.check_sentence(
-            combined_context, sentence
-        )
+        _label, score = entailment_checker.check_sentence(combined_context, sentence)
         if score >= threshold:
             entailed += 1
 
@@ -99,9 +97,7 @@ def compute_context_utilization(
         if not context.strip():
             continue
         for sentence in sentences:
-            _label, score = entailment_checker.check_sentence(
-                context, sentence
-            )
+            _label, score = entailment_checker.check_sentence(context, sentence)
             if score >= threshold:
                 used += 1
                 break
@@ -183,9 +179,7 @@ class RAGEvaluator:
         mean_util = sum(s.context_utilization for s in scores) / len(scores)
 
         cp_scores = [
-            s.citation_precision
-            for s in scores
-            if s.citation_precision is not None
+            s.citation_precision for s in scores if s.citation_precision is not None
         ]
         mean_cp = sum(cp_scores) / len(cp_scores) if cp_scores else None
 

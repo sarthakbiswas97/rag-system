@@ -44,9 +44,7 @@ class TestVectorStoreSparseVectors:
         )
 
         # Sparse search should find the point
-        results = store.search_sparse(
-            SparseVector(indices=[0], values=[1.0]), top_k=5
-        )
+        results = store.search_sparse(SparseVector(indices=[0], values=[1.0]), top_k=5)
         assert len(results) == 1
         assert results[0].chunk.chunk_id == chunk_id
 
@@ -89,9 +87,7 @@ class TestVectorStoreSparseVectors:
         assert results[0].chunk.metadata.tenant_id == "tenant-a"
 
     def test_search_sparse_empty_store(self, store: VectorStore) -> None:
-        results = store.search_sparse(
-            SparseVector(indices=[0], values=[1.0]), top_k=5
-        )
+        results = store.search_sparse(SparseVector(indices=[0], values=[1.0]), top_k=5)
         assert results == ()
 
     def test_upsert_sparse_empty_list(self, store: VectorStore) -> None:

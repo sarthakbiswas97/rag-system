@@ -26,9 +26,9 @@ class EntailmentChecker:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self._device = torch.device(device)
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self._model = AutoModelForSequenceClassification.from_pretrained(
-            model_name
-        ).to(self._device)
+        self._model = AutoModelForSequenceClassification.from_pretrained(model_name).to(
+            self._device
+        )
         self._model.eval()
 
         # Read label mapping from model config
@@ -109,9 +109,7 @@ class EntailmentChecker:
             contexts = citation_map.get(sent_idx)
             if contexts:
                 premise = " ".join(contexts)
-                supporting_chunk_id = _find_supporting_chunk_id(
-                    sent_idx, citations
-                )
+                supporting_chunk_id = _find_supporting_chunk_id(sent_idx, citations)
             else:
                 premise = all_context
                 supporting_chunk_id = None
@@ -130,9 +128,7 @@ class EntailmentChecker:
                 )
             )
 
-        faithfulness_score = (
-            entailed_count / len(sentences) if sentences else 0.0
-        )
+        faithfulness_score = entailed_count / len(sentences) if sentences else 0.0
 
         elapsed_ms = (time.perf_counter() - start) * 1000
         logger.info(

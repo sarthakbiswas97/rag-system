@@ -50,10 +50,7 @@ class TestReranker:
         assert result[0].retrieval_method == "reranked"
 
     def test_respects_top_k(self, reranker: Reranker) -> None:
-        chunks = [
-            _make_scored_chunk(f"text {i}", score=0.5)
-            for i in range(10)
-        ]
+        chunks = [_make_scored_chunk(f"text {i}", score=0.5) for i in range(10)]
         reranker._model.predict.return_value = list(range(10))
 
         result = reranker.rerank("query", chunks, top_k=3)
@@ -103,10 +100,7 @@ class TestReranker:
         assert result[0].chunk.metadata.source_file == "test.txt"
 
     def test_sorted_descending_by_score(self, reranker: Reranker) -> None:
-        chunks = [
-            _make_scored_chunk(f"text {i}", score=0.5)
-            for i in range(5)
-        ]
+        chunks = [_make_scored_chunk(f"text {i}", score=0.5) for i in range(5)]
         reranker._model.predict.return_value = [0.1, 0.5, 0.3, 0.9, 0.7]
 
         result = reranker.rerank("query", chunks, top_k=5)

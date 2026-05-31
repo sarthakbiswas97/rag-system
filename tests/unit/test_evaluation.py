@@ -41,10 +41,12 @@ def _make_scored_chunk(chunk_id: str, text: str) -> ScoredChunk:
 
 class TestComputeFaithfulness:
     def test_all_entailed(self) -> None:
-        checker = _make_checker([
-            ("entailment", 0.95),
-            ("entailment", 0.9),
-        ])
+        checker = _make_checker(
+            [
+                ("entailment", 0.95),
+                ("entailment", 0.9),
+            ]
+        )
         score = compute_faithfulness(
             "Sentence one. Sentence two.",
             ["context text"],
@@ -53,10 +55,12 @@ class TestComputeFaithfulness:
         assert score == 1.0
 
     def test_partial_entailment(self) -> None:
-        checker = _make_checker([
-            ("entailment", 0.95),
-            ("contradiction", 0.1),
-        ])
+        checker = _make_checker(
+            [
+                ("entailment", 0.95),
+                ("contradiction", 0.1),
+            ]
+        )
         score = compute_faithfulness(
             "Supported claim. Unsupported claim.",
             ["context"],
@@ -75,10 +79,12 @@ class TestComputeFaithfulness:
 
 class TestComputeContextUtilization:
     def test_all_contexts_used(self) -> None:
-        checker = _make_checker([
-            ("entailment", 0.8),
-            ("entailment", 0.8),
-        ])
+        checker = _make_checker(
+            [
+                ("entailment", 0.8),
+                ("entailment", 0.8),
+            ]
+        )
         score = compute_context_utilization(
             "Answer sentence.",
             ["context1", "context2"],
@@ -87,10 +93,12 @@ class TestComputeContextUtilization:
         assert score == 1.0
 
     def test_partial_utilization(self) -> None:
-        checker = _make_checker([
-            ("entailment", 0.8),  # context1 -> sentence: entailed
-            ("neutral", 0.1),    # context2 -> sentence: not entailed
-        ])
+        checker = _make_checker(
+            [
+                ("entailment", 0.8),  # context1 -> sentence: entailed
+                ("neutral", 0.1),  # context2 -> sentence: not entailed
+            ]
+        )
         score = compute_context_utilization(
             "Answer sentence.",
             ["relevant context", "irrelevant context"],
@@ -138,20 +146,20 @@ class TestComputeCitationPrecision:
                 sentence_index=0,
             )
         ]
-        score = compute_citation_precision(
-            citations, ["ctx"], "answer.", checker, []
-        )
+        score = compute_citation_precision(citations, ["ctx"], "answer.", checker, [])
         assert score == 0.0
 
 
 class TestRAGEvaluator:
     def test_evaluate_single_sample(self) -> None:
-        checker = _make_checker([
-            # faithfulness: 1 sentence, entailed
-            ("entailment", 0.95),
-            # context_utilization: 1 context checked
-            ("entailment", 0.8),
-        ])
+        checker = _make_checker(
+            [
+                # faithfulness: 1 sentence, entailed
+                ("entailment", 0.95),
+                # context_utilization: 1 context checked
+                ("entailment", 0.8),
+            ]
+        )
         evaluator = RAGEvaluator(entailment_checker=checker)
         sample = EvalSample(
             question="What is X?",
@@ -176,16 +184,18 @@ class TestRAGEvaluator:
         assert report.mean_faithfulness == 0.0
 
     def test_evaluate_multiple_samples(self) -> None:
-        checker = _make_checker([
-            # Sample 1 faithfulness
-            ("entailment", 0.95),
-            # Sample 1 context utilization
-            ("entailment", 0.8),
-            # Sample 2 faithfulness
-            ("neutral", 0.3),
-            # Sample 2 context utilization
-            ("neutral", 0.2),
-        ])
+        checker = _make_checker(
+            [
+                # Sample 1 faithfulness
+                ("entailment", 0.95),
+                # Sample 1 context utilization
+                ("entailment", 0.8),
+                # Sample 2 faithfulness
+                ("neutral", 0.3),
+                # Sample 2 context utilization
+                ("neutral", 0.2),
+            ]
+        )
         evaluator = RAGEvaluator(entailment_checker=checker)
         samples = [
             EvalSample(

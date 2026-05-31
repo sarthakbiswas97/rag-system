@@ -268,14 +268,10 @@ class IngestionPipeline:
 
         return result
 
-    def _attach_sparse_embeddings(
-        self, chunks: tuple[Chunk, ...]
-    ) -> tuple[Chunk, ...]:
+    def _attach_sparse_embeddings(self, chunks: tuple[Chunk, ...]) -> tuple[Chunk, ...]:
         if self._sparse_embedder is None:
             return chunks
-        sparse_embeddings = self._sparse_embedder.embed_texts(
-            [c.text for c in chunks]
-        )
+        sparse_embeddings = self._sparse_embedder.embed_texts([c.text for c in chunks])
         return tuple(
             Chunk(
                 chunk_id=c.chunk_id,
@@ -293,16 +289,12 @@ class IngestionPipeline:
             return
         chunk_ids = [c.chunk_id for c in chunks if c.sparse_embedding is not None]
         sparse_vectors = [
-            c.sparse_embedding
-            for c in chunks
-            if c.sparse_embedding is not None
+            c.sparse_embedding for c in chunks if c.sparse_embedding is not None
         ]
         if chunk_ids:
             self._vector_store.upsert_sparse_vectors(chunk_ids, sparse_vectors)
 
-    def ingest_directory(
-        self, directory: Path, tenant_id: str = ""
-    ) -> IngestionResult:
+    def ingest_directory(self, directory: Path, tenant_id: str = "") -> IngestionResult:
         if not directory.is_dir():
             raise NotADirectoryError(f"Not a directory: {directory}")
 

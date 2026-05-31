@@ -55,9 +55,7 @@ class TenantRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_all(
-        self, *, include_deleted: bool = False
-    ) -> list[Tenant]:
+    async def list_all(self, *, include_deleted: bool = False) -> list[Tenant]:
         stmt = select(Tenant).order_by(Tenant.created_at.desc())
         if not include_deleted:
             stmt = stmt.where(Tenant.status != TenantStatus.DELETED)

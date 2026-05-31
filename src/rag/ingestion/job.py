@@ -34,9 +34,7 @@ class IngestionJob:
     chunks_created: int = 0
     elapsed_ms: float = 0.0
     error: str | None = None
-    created_at: str = field(
-        default_factory=lambda: datetime.now(tz=UTC).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(tz=UTC).isoformat())
     completed_at: str | None = None
 
 
@@ -79,9 +77,7 @@ def _dict_to_job(data: dict[str, Any]) -> IngestionJob:
 class JobStore:
     """Redis-backed ingestion job tracker."""
 
-    def __init__(
-        self, client: Redis, ttl_seconds: int = JOB_TTL_SECONDS
-    ) -> None:
+    def __init__(self, client: Redis, ttl_seconds: int = JOB_TTL_SECONDS) -> None:
         self._client = client
         self._ttl = ttl_seconds
 

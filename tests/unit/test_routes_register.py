@@ -39,9 +39,7 @@ def client(mock_db_session: AsyncMock) -> TestClient:
 class TestRegister:
     def test_register_success(self, client: TestClient) -> None:
         tenant = _make_tenant()
-        with patch(
-            "rag.api.routes_register.TenantRepository"
-        ) as mock_repo:
+        with patch("rag.api.routes_register.TenantRepository") as mock_repo:
             instance = mock_repo.return_value
             instance.create = AsyncMock(return_value=(tenant, "rk_testkey123"))
 
@@ -60,9 +58,7 @@ class TestRegister:
     def test_duplicate_returns_409(self, client: TestClient) -> None:
         from sqlalchemy.exc import IntegrityError
 
-        with patch(
-            "rag.api.routes_register.TenantRepository"
-        ) as mock_repo:
+        with patch("rag.api.routes_register.TenantRepository") as mock_repo:
             instance = mock_repo.return_value
             instance.create = AsyncMock(
                 side_effect=IntegrityError("dup", {}, Exception())
@@ -87,13 +83,9 @@ class TestRegister:
         assert resp.status_code == 422
 
     def test_blank_name_returns_422(self, client: TestClient) -> None:
-        resp = client.post(
-            "/v1/register", json={"name": "   ", "email": "a@b.com"}
-        )
+        resp = client.post("/v1/register", json={"name": "   ", "email": "a@b.com"})
         assert resp.status_code == 422
 
     def test_missing_name_returns_422(self, client: TestClient) -> None:
-        resp = client.post(
-            "/v1/register", json={"email": "a@b.com"}
-        )
+        resp = client.post("/v1/register", json={"email": "a@b.com"})
         assert resp.status_code == 422

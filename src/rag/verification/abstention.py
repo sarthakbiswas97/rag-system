@@ -43,9 +43,7 @@ class AbstentionDecider:
             )
 
         # Signal 2: All retrieval scores below threshold
-        max_score = max(
-            sc.score for sc in retrieval_result.scored_chunks
-        )
+        max_score = max(sc.score for sc in retrieval_result.scored_chunks)
         if max_score < self._retrieval_threshold:
             return AbstentionDecision(
                 should_abstain=True,
@@ -54,8 +52,7 @@ class AbstentionDecider:
 
         # Signal 3: Reranked scores below threshold (if reranking was used)
         is_reranked = any(
-            sc.retrieval_method == "reranked"
-            for sc in retrieval_result.scored_chunks
+            sc.retrieval_method == "reranked" for sc in retrieval_result.scored_chunks
         )
         if is_reranked and max_score < self._reranker_threshold:
             return AbstentionDecision(

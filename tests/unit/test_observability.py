@@ -30,9 +30,7 @@ class TestMetricsEndpoint:
         resp = metrics_client.get("/metrics")
         assert "text/plain" in resp.headers["content-type"]
 
-    def test_contains_prometheus_format(
-        self, metrics_client: TestClient
-    ) -> None:
+    def test_contains_prometheus_format(self, metrics_client: TestClient) -> None:
         resp = metrics_client.get("/metrics")
         body = resp.text
         assert "rag_requests_total" in body or "# HELP" in body

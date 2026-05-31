@@ -213,9 +213,7 @@ async def query_stream(
             session_id = session.session_id
 
         if session is not None and session_store is not None:
-            session = session_store.add_turn(
-                session.session_id, "user", body.question
-            )
+            session = session_store.add_turn(session.session_id, "user", body.question)
 
         search_query = await rewrite_with_context(body.question, session, llm_client)
 
@@ -274,9 +272,7 @@ async def query_stream(
                 if v_result.citation_verifications
                 else None,
                 citations_supported=(
-                    sum(
-                        1 for v in v_result.citation_verifications if v.is_supported
-                    )
+                    sum(1 for v in v_result.citation_verifications if v.is_supported)
                     if v_result.citation_verifications
                     else None
                 ),

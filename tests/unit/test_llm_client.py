@@ -161,14 +161,17 @@ class TestLLMClientStreamGenerate:
 
         response = MagicMock()
         response.status_code = 401
-        with patch.object(
-            client._client.chat.completions,
-            "create",
-            new=AsyncMock(
-                side_effect=AuthenticationError(
-                    "bad key", response=response, body=None
-                )
+        with (
+            patch.object(
+                client._client.chat.completions,
+                "create",
+                new=AsyncMock(
+                    side_effect=AuthenticationError(
+                        "bad key", response=response, body=None
+                    )
+                ),
             ),
-        ), pytest.raises(LLMServiceError):
+            pytest.raises(LLMServiceError),
+        ):
             async for _ in client.stream_generate("sys", "usr"):
                 pass

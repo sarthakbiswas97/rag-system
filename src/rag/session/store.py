@@ -87,9 +87,7 @@ class SessionStore:
         data = json.loads(raw)
         return _dict_to_session(data)
 
-    def add_turn(
-        self, session_id: str, role: str, content: str
-    ) -> Session | None:
+    def add_turn(self, session_id: str, role: str, content: str) -> Session | None:
         session = self.get(session_id)
         if session is None:
             return None

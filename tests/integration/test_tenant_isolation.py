@@ -129,9 +129,7 @@ class TestTenantLifecycle:
     def test_deleted_tenant_rejected(self, client: TestClient) -> None:
         tenant_id, api_key = _create_tenant(client, "to-delete")
 
-        resp = client.delete(
-            f"/admin/tenants/{tenant_id}", headers=_admin_headers()
-        )
+        resp = client.delete(f"/admin/tenants/{tenant_id}", headers=_admin_headers())
         assert resp.status_code == 200
         assert resp.json()["status"] == "deleted"
 
@@ -159,11 +157,15 @@ class TestCrossTenantIsolation:
         _, key_b = _create_tenant(client, "tenant-beta")
 
         _ingest_text(
-            client, key_a, "france.txt",
+            client,
+            key_a,
+            "france.txt",
             "The capital of France is Paris. It is a major European city.",
         )
         _ingest_text(
-            client, key_b, "germany.txt",
+            client,
+            key_b,
+            "germany.txt",
             "The capital of Germany is Berlin. It is a historic city.",
         )
 
@@ -179,11 +181,15 @@ class TestCrossTenantIsolation:
         _, key_b = _create_tenant(client, "iso-beta")
 
         _ingest_text(
-            client, key_a, "alpha.txt",
+            client,
+            key_a,
+            "alpha.txt",
             "Quantum computing uses qubits to perform calculations.",
         )
         _ingest_text(
-            client, key_b, "beta.txt",
+            client,
+            key_b,
+            "beta.txt",
             "Photosynthesis converts sunlight into chemical energy in plants.",
         )
 

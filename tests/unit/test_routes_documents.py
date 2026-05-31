@@ -183,9 +183,7 @@ class TestUpdateDocument:
         ):
             resp = client.put(
                 "/v1/documents/doc-1",
-                files={
-                    "file": ("updated.txt", BytesIO(b"new content"), "text/plain")
-                },
+                files={"file": ("updated.txt", BytesIO(b"new content"), "text/plain")},
             )
 
         assert resp.status_code == 200
@@ -204,9 +202,7 @@ class TestUpdateDocument:
         ):
             resp = client.put(
                 "/v1/documents/missing",
-                files={
-                    "file": ("file.txt", BytesIO(b"content"), "text/plain")
-                },
+                files={"file": ("file.txt", BytesIO(b"content"), "text/plain")},
             )
 
         assert resp.status_code == 404

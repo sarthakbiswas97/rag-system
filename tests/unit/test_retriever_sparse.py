@@ -58,13 +58,15 @@ class TestRetrieverWithSparse:
     ) -> None:
         sparse = SparseEmbedder()
         # Seed vocabulary with the same texts
-        sparse.embed_texts([
-            "The capital of France is Paris, a major European city.",
-            "Python is a popular programming language for data science.",
-            "Quantum mechanics describes behavior of particles at atomic scale.",
-            "The Great Wall of China is a historic fortification structure.",
-            "Machine learning is a subset of artificial intelligence.",
-        ])
+        sparse.embed_texts(
+            [
+                "The capital of France is Paris, a major European city.",
+                "Python is a popular programming language for data science.",
+                "Quantum mechanics describes behavior of particles at atomic scale.",
+                "The Great Wall of China is a historic fortification structure.",
+                "Machine learning is a subset of artificial intelligence.",
+            ]
+        )
 
         retriever = Retriever(
             embedder=embedder,

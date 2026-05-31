@@ -7,9 +7,7 @@ from rag.models.verification import EntailmentResult, VerificationReport
 from rag.verification.abstention import AbstentionDecider
 
 
-def _make_scored_chunk(
-    score: float, method: str = "vector"
-) -> ScoredChunk:
+def _make_scored_chunk(score: float, method: str = "vector") -> ScoredChunk:
     chunk = Chunk(
         document_id="doc-1",
         text="some text",
@@ -40,9 +38,7 @@ def _make_citation(chunk_id: str = "c1") -> Citation:
     )
 
 
-def _make_verification_report(
-    faithful: bool, score: float
-) -> VerificationReport:
+def _make_verification_report(faithful: bool, score: float) -> VerificationReport:
     return VerificationReport(
         sentence_results=(
             EntailmentResult(

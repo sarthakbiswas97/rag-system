@@ -30,9 +30,7 @@ class TestRateLimiter:
         assert result.remaining == 2
         assert result.limit == 5
 
-    def test_blocks_at_limit(
-        self, limiter: RateLimiter, mock_redis: MagicMock
-    ) -> None:
+    def test_blocks_at_limit(self, limiter: RateLimiter, mock_redis: MagicMock) -> None:
         pipe = MagicMock()
         pipe.execute.return_value = [None, 5, None, None]
         mock_redis.pipeline.return_value = pipe
@@ -112,9 +110,7 @@ class TestRateLimiter:
 
 class TestRateLimiterCustomConfig:
     def test_custom_max_requests(self, mock_redis: MagicMock) -> None:
-        limiter = RateLimiter(
-            client=mock_redis, max_requests=100, window_seconds=30
-        )
+        limiter = RateLimiter(client=mock_redis, max_requests=100, window_seconds=30)
         pipe = MagicMock()
         pipe.execute.return_value = [None, 50, None, None]
         mock_redis.pipeline.return_value = pipe

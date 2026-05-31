@@ -62,9 +62,7 @@ class TestRewriteWithContext:
         session = Session()
         session = session.add_turn("user", "First question")
 
-        result = await rewrite_with_context(
-            "First question", session, client
-        )
+        result = await rewrite_with_context("First question", session, client)
 
         assert result == "First question"
         client.generate.assert_not_called()
@@ -109,9 +107,7 @@ class TestRewriteWithContext:
         session = session.add_turn("assistant", "France is a country")
         session = session.add_turn("user", "What about it?")
 
-        result = await rewrite_with_context(
-            "What about it?", session, client
-        )
+        result = await rewrite_with_context("What about it?", session, client)
 
         assert result == "rewritten"
         client.generate.assert_called_once()
@@ -135,7 +131,8 @@ class TestBuildUserPrompt:
 
         lines = prompt.split("\n")
         history_section = [
-            line for line in lines
+            line
+            for line in lines
             if line.startswith("user:") or line.startswith("assistant:")
         ]
         # Should have 2 history turns, not 3 (current turn excluded)

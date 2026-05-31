@@ -46,14 +46,17 @@ class TestLLMClientFallback:
         )
 
         # Mock primary to fail, fallback to succeed
-        with patch.object(
-            primary_with_fallback._client.chat.completions,
-            "create",
-            new=AsyncMock(side_effect=_make_connection_error("primary failed")),
-        ), patch.object(
-            fallback._client.chat.completions,
-            "create",
-            new=AsyncMock(return_value=_mock_response("fallback answer")),
+        with (
+            patch.object(
+                primary_with_fallback._client.chat.completions,
+                "create",
+                new=AsyncMock(side_effect=_make_connection_error("primary failed")),
+            ),
+            patch.object(
+                fallback._client.chat.completions,
+                "create",
+                new=AsyncMock(return_value=_mock_response("fallback answer")),
+            ),
         ):
             result = await primary_with_fallback.generate("sys", "usr")
 
@@ -83,11 +86,14 @@ class TestLLMClientFallback:
     async def test_raises_when_no_fallback_and_fails(self) -> None:
         primary = LLMClient(api_key="primary-key")
 
-        with patch.object(
-            primary._client.chat.completions,
-            "create",
-            new=AsyncMock(side_effect=_make_connection_error("service down")),
-        ), pytest.raises(LLMServiceError):
+        with (
+            patch.object(
+                primary._client.chat.completions,
+                "create",
+                new=AsyncMock(side_effect=_make_connection_error("service down")),
+            ),
+            pytest.raises(LLMServiceError),
+        ):
             await primary.generate("sys", "usr")
 
     @pytest.mark.asyncio
@@ -99,15 +105,19 @@ class TestLLMClientFallback:
             fallback_client=fallback,
         )
 
-        with patch.object(
-            primary._client.chat.completions,
-            "create",
-            new=AsyncMock(side_effect=_make_connection_error("primary failed")),
-        ), patch.object(
-            fallback._client.chat.completions,
-            "create",
-            new=AsyncMock(side_effect=_make_connection_error("fallback failed")),
-        ), pytest.raises(LLMServiceError):
+        with (
+            patch.object(
+                primary._client.chat.completions,
+                "create",
+                new=AsyncMock(side_effect=_make_connection_error("primary failed")),
+            ),
+            patch.object(
+                fallback._client.chat.completions,
+                "create",
+                new=AsyncMock(side_effect=_make_connection_error("fallback failed")),
+            ),
+            pytest.raises(LLMServiceError),
+        ):
             await primary.generate("sys", "usr")
 
     def test_fallback_client_stored(self) -> None:

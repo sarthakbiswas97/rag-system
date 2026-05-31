@@ -89,15 +89,11 @@ class TestJobStore:
         job = store.create()
         assert store.get(job.job_id).status == JobStatus.PENDING
 
-        running = IngestionJob(
-            job_id=job.job_id, status=JobStatus.RUNNING
-        )
+        running = IngestionJob(job_id=job.job_id, status=JobStatus.RUNNING)
         store.update(running)
         assert store.get(job.job_id).status == JobStatus.RUNNING
 
-        completed = IngestionJob(
-            job_id=job.job_id, status=JobStatus.COMPLETED
-        )
+        completed = IngestionJob(job_id=job.job_id, status=JobStatus.COMPLETED)
         store.update(completed)
         assert store.get(job.job_id).status == JobStatus.COMPLETED
 

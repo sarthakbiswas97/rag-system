@@ -231,9 +231,7 @@ class VectorStore:
         if tenant_id:
             query_filter = Filter(
                 must=[
-                    FieldCondition(
-                        key="tenant_id", match=MatchValue(value=tenant_id)
-                    )
+                    FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id))
                 ]
             )
 
@@ -266,9 +264,7 @@ class VectorStore:
         if tenant_id:
             query_filter = Filter(
                 must=[
-                    FieldCondition(
-                        key="tenant_id", match=MatchValue(value=tenant_id)
-                    )
+                    FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id))
                 ]
             )
 
@@ -318,9 +314,7 @@ class VectorStore:
             collection_name=self._collection,
             points_selector=Filter(
                 must=[
-                    FieldCondition(
-                        key="tenant_id", match=MatchValue(value=tenant_id)
-                    )
+                    FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id))
                 ]
             ),
         )
@@ -334,9 +328,7 @@ class VectorStore:
             collection_name=self._collection,
             count_filter=Filter(
                 must=[
-                    FieldCondition(
-                        key="tenant_id", match=MatchValue(value=tenant_id)
-                    )
+                    FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id))
                 ]
             ),
             exact=True,

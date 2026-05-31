@@ -67,9 +67,7 @@ class DocumentRepository:
             extra={"count": len(docs), "tenant_id": tenant_id},
         )
 
-    async def get_by_id(
-        self, doc_id: str, tenant_id: str
-    ) -> Document | None:
+    async def get_by_id(self, doc_id: str, tenant_id: str) -> Document | None:
         stmt = select(Document).where(
             Document.id == doc_id,
             Document.tenant_id == tenant_id,
@@ -113,9 +111,7 @@ class DocumentRepository:
         )
         return doc
 
-    async def soft_delete(
-        self, doc_id: str, tenant_id: str
-    ) -> Document | None:
+    async def soft_delete(self, doc_id: str, tenant_id: str) -> Document | None:
         return await self.update_status(doc_id, tenant_id, DocumentStatus.DELETED)
 
     async def update_document(

@@ -48,18 +48,14 @@ class TestCreateTenant:
         assert data["api_key"].startswith("rk_")
 
     async def test_create_duplicate_name(self, client: AsyncClient) -> None:
-        await client.post(
-            "/admin/tenants", json={"name": "acme"}, headers=HEADERS
-        )
+        await client.post("/admin/tenants", json={"name": "acme"}, headers=HEADERS)
         resp = await client.post(
             "/admin/tenants", json={"name": "acme"}, headers=HEADERS
         )
         assert resp.status_code == 409
 
     async def test_create_blank_name(self, client: AsyncClient) -> None:
-        resp = await client.post(
-            "/admin/tenants", json={"name": "  "}, headers=HEADERS
-        )
+        resp = await client.post("/admin/tenants", json={"name": "  "}, headers=HEADERS)
         assert resp.status_code == 422
 
     async def test_create_without_admin_key(self, client: AsyncClient) -> None:
@@ -84,12 +80,8 @@ class TestListTenants:
         assert data["count"] == 0
 
     async def test_list_after_create(self, client: AsyncClient) -> None:
-        await client.post(
-            "/admin/tenants", json={"name": "a"}, headers=HEADERS
-        )
-        await client.post(
-            "/admin/tenants", json={"name": "b"}, headers=HEADERS
-        )
+        await client.post("/admin/tenants", json={"name": "a"}, headers=HEADERS)
+        await client.post("/admin/tenants", json={"name": "b"}, headers=HEADERS)
         resp = await client.get("/admin/tenants", headers=HEADERS)
         assert resp.json()["count"] == 2
 

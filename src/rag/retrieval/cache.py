@@ -34,9 +34,7 @@ class QueryCache:
         self._client = client
         self._ttl = ttl_seconds
 
-    def get(
-        self, tenant_id: str, query: str, top_k: int
-    ) -> dict[str, Any] | None:
+    def get(self, tenant_id: str, query: str, top_k: int) -> dict[str, Any] | None:
         key = _cache_key(tenant_id, query, top_k)
         raw = self._client.get(key)
         if raw is None:

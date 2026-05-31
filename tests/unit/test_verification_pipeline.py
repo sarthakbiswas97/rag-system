@@ -53,9 +53,7 @@ def _make_generation_response(
     )
 
 
-def _make_verification_report(
-    faithful: bool, score: float
-) -> VerificationReport:
+def _make_verification_report(faithful: bool, score: float) -> VerificationReport:
     return VerificationReport(
         sentence_results=(
             EntailmentResult(

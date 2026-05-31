@@ -43,11 +43,12 @@ def _make_mock_checker(
     Args:
         check_results: List of (label, entailment_score) tuples, one per call.
     """
-    with patch(
-        "rag.verification.entailment.AutoTokenizer.from_pretrained"
-    ), patch(
-        "rag.verification.entailment.AutoModelForSequenceClassification.from_pretrained"
-    ) as mock_model_cls:
+    with (
+        patch("rag.verification.entailment.AutoTokenizer.from_pretrained"),
+        patch(
+            "rag.verification.entailment.AutoModelForSequenceClassification.from_pretrained"
+        ) as mock_model_cls,
+    ):
         mock_model = MagicMock()
         mock_model.config.label2id = {
             "entailment": 0,
@@ -122,10 +123,12 @@ class TestFindSupportingChunkId:
 
 class TestVerifyAnswer:
     def test_all_entailed(self) -> None:
-        checker = _make_mock_checker([
-            ("entailment", 0.95),
-            ("entailment", 0.92),
-        ])
+        checker = _make_mock_checker(
+            [
+                ("entailment", 0.95),
+                ("entailment", 0.92),
+            ]
+        )
 
         chunks = [_make_scored_chunk("c1", "Paris is France's capital.", 0.9)]
         citations = [_make_citation("c1", 0), _make_citation("c1", 1)]
@@ -141,10 +144,12 @@ class TestVerifyAnswer:
         assert len(report.sentence_results) == 2
 
     def test_partial_entailment(self) -> None:
-        checker = _make_mock_checker([
-            ("entailment", 0.95),
-            ("contradiction", 0.1),
-        ])
+        checker = _make_mock_checker(
+            [
+                ("entailment", 0.95),
+                ("contradiction", 0.1),
+            ]
+        )
 
         chunks = [_make_scored_chunk("c1", "Paris is France's capital.", 0.9)]
         citations = [_make_citation("c1", 0)]
@@ -206,11 +211,13 @@ class TestVerifyAnswer:
         assert report.overall_faithful is False
 
     def test_sentence_results_have_correct_labels(self) -> None:
-        checker = _make_mock_checker([
-            ("entailment", 0.95),
-            ("neutral", 0.3),
-            ("contradiction", 0.05),
-        ])
+        checker = _make_mock_checker(
+            [
+                ("entailment", 0.95),
+                ("neutral", 0.3),
+                ("contradiction", 0.05),
+            ]
+        )
 
         chunks = [_make_scored_chunk("c1", "context text", 0.9)]
 
@@ -226,11 +233,13 @@ class TestVerifyAnswer:
         assert report.sentence_results[2].label == "contradiction"
 
     def test_faithfulness_score_rounded(self) -> None:
-        checker = _make_mock_checker([
-            ("entailment", 0.95),
-            ("entailment", 0.85),
-            ("neutral", 0.3),
-        ])
+        checker = _make_mock_checker(
+            [
+                ("entailment", 0.95),
+                ("entailment", 0.85),
+                ("neutral", 0.3),
+            ]
+        )
 
         chunks = [_make_scored_chunk("c1", "context", 0.9)]
 

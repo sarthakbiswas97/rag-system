@@ -32,12 +32,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         method = request.method
         status = str(response.status_code)
 
-        REQUEST_COUNT.labels(
-            method=method, endpoint=endpoint, status=status
-        ).inc()
-        REQUEST_LATENCY.labels(
-            method=method, endpoint=endpoint
-        ).observe(elapsed)
+        REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status).inc()
+        REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(elapsed)
 
         logger.info(
             "request_completed",
