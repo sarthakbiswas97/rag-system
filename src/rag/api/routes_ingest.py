@@ -5,7 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rag.api.dependencies import (
@@ -16,7 +16,7 @@ from rag.api.dependencies import (
     get_pipeline,
     get_query_cache,
 )
-from rag.api.rate_limiter import RateLimiter
+from rag.api.rate_limiter import RateLimiter, RateLimitResult
 from rag.api.schemas import IngestResponse, JobResponse
 from rag.ingestion.job import IngestionJob, JobStore
 from rag.ingestion.pipeline import IngestionPipeline
@@ -43,9 +43,16 @@ async def _save_uploads(files: list[UploadFile]) -> tuple[list[Path], Path]:
     return paths, tmp_dir
 
 
+def _add_rate_limit_headers(response: Response, result: RateLimitResult) -> None:
+    response.headers["X-RateLimit-Limit"] = str(result.limit)
+    response.headers["X-RateLimit-Remaining"] = str(result.remaining)
+    response.headers["X-RateLimit-Reset"] = str(result.reset_after)
+
+
 @router.post("/v1/ingest", response_model=IngestResponse)
 async def ingest(
     files: list[UploadFile],
+    response: Response,
     tenant: Tenant = Depends(get_current_tenant),
     pipeline: IngestionPipeline = Depends(get_pipeline),
     query_cache: QueryCache | None = Depends(get_query_cache),
@@ -54,6 +61,7 @@ async def ingest(
 ) -> IngestResponse:
     if rate_limiter is not None:
         result = rate_limiter.check(tenant.id, "ingest")
+        _add_rate_limit_headers(response, result)
         if not result.allowed:
             raise HTTPException(
                 status_code=429,
@@ -97,6 +105,7 @@ async def ingest(
 @router.post("/v1/ingest/async", response_model=JobResponse)
 async def ingest_async(
     files: list[UploadFile],
+    response: Response,
     tenant: Tenant = Depends(get_current_tenant),
     job_store: JobStore = Depends(get_job_store),
     worker: IngestionWorker = Depends(get_ingestion_worker),
@@ -104,6 +113,7 @@ async def ingest_async(
 ) -> JobResponse:
     if rate_limiter is not None:
         result = rate_limiter.check(tenant.id, "ingest")
+        _add_rate_limit_headers(response, result)
         if not result.allowed:
             raise HTTPException(
                 status_code=429,

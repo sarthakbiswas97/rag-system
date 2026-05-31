@@ -11,7 +11,7 @@ from qdrant_client import QdrantClient
 from redis import Redis
 from starlette.requests import Request
 
-from rag.api.middleware import RequestContextMiddleware
+from rag.api.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from rag.api.rate_limiter import RateLimiter
 from rag.api.routes_admin import router as admin_router
 from rag.api.routes_documents import router as documents_router
@@ -219,8 +219,9 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],
+        allow_headers=["Content-Type", "X-API-Key", "Authorization"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestContextMiddleware)
 
     @app.middleware("http")

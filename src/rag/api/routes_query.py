@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ from rag.api.dependencies import (
     get_session_store,
     get_verification_pipeline,
 )
-from rag.api.rate_limiter import RateLimiter
+from rag.api.rate_limiter import RateLimiter, RateLimitResult
 from rag.api.schemas import (
     CitationOut,
     QueryRequest,
@@ -46,9 +46,16 @@ from rag.verification.pipeline import VerificationPipeline
 router = APIRouter()
 
 
+def _add_rate_limit_headers(response: Response, result: RateLimitResult) -> None:
+    response.headers["X-RateLimit-Limit"] = str(result.limit)
+    response.headers["X-RateLimit-Remaining"] = str(result.remaining)
+    response.headers["X-RateLimit-Reset"] = str(result.reset_after)
+
+
 @router.post("/v1/query", response_model=QueryResponse)
 async def query(
     body: QueryRequest,
+    response: Response,
     tenant: Tenant = Depends(get_current_tenant),
     retriever: Retriever = Depends(get_retriever),
     generator: Generator = Depends(get_generator),
@@ -63,6 +70,7 @@ async def query(
 ) -> QueryResponse:
     if rate_limiter is not None:
         result = rate_limiter.check(tenant.id, "query")
+        _add_rate_limit_headers(response, result)
         if not result.allowed:
             raise HTTPException(
                 status_code=429,
@@ -101,8 +109,11 @@ async def query(
         generation_result = await generator.generate(
             body.question, retrieval_result, top_k=body.top_k
         )
-    except LLMServiceError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except LLMServiceError:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM service temporarily unavailable. Please try again later.",
+        ) from None
 
     verification_out = None
 
@@ -180,6 +191,7 @@ async def query(
 @router.post("/v1/query/stream")
 async def query_stream(
     body: QueryRequest,
+    response: Response,
     tenant: Tenant = Depends(get_current_tenant),
     retriever: Retriever = Depends(get_retriever),
     llm_client: LLMClient = Depends(get_llm_client),
@@ -192,6 +204,7 @@ async def query_stream(
 ):
     if rate_limiter is not None:
         result = rate_limiter.check(tenant.id, "query")
+        _add_rate_limit_headers(response, result)
         if not result.allowed:
             raise HTTPException(
                 status_code=429,

@@ -219,7 +219,7 @@ function TenantTable({
 
 function readStoredAdminKey(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(ADMIN_KEY_STORAGE);
+  return sessionStorage.getItem(ADMIN_KEY_STORAGE);
 }
 
 export default function AdminPage() {
@@ -248,7 +248,7 @@ export default function AdminPage() {
       })
       .catch(() => {
         if (!cancelled) {
-          localStorage.removeItem(ADMIN_KEY_STORAGE);
+          sessionStorage.removeItem(ADMIN_KEY_STORAGE);
           setAdminKey(null);
           setLoading(false);
         }
@@ -289,14 +289,14 @@ export default function AdminPage() {
   };
 
   const handleLogin = (key: string) => {
-    localStorage.setItem(ADMIN_KEY_STORAGE, key);
+    sessionStorage.setItem(ADMIN_KEY_STORAGE, key);
     verifyAttempted.current = false;
     setVerified(true);
     setAdminKey(key);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(ADMIN_KEY_STORAGE);
+    sessionStorage.removeItem(ADMIN_KEY_STORAGE);
     verifyAttempted.current = false;
     setAdminKey(null);
     setVerified(false);

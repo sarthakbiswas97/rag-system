@@ -19,7 +19,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     const trimmed = key.trim();
-    localStorage.setItem("api_key", trimmed);
+    sessionStorage.setItem("api_key", trimmed);
 
     try {
       await getMe();
@@ -27,7 +27,7 @@ export default function LoginPage() {
       toast.success("Signed in successfully");
       router.push("/home");
     } catch (err) {
-      localStorage.removeItem("api_key");
+      sessionStorage.removeItem("api_key");
       if (err instanceof ApiError) {
         toast.error(err.status === 401 ? "Invalid API key" : err.detail);
       } else {

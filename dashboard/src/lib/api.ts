@@ -15,7 +15,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("api_key") : null;
+    typeof window !== "undefined" ? sessionStorage.getItem("api_key") : null;
 
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),

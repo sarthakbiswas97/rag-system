@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthState>({
 
 function readStoredKey(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("api_key");
+  return sessionStorage.getItem("api_key");
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (!cancelled) {
-          localStorage.removeItem("api_key");
+          sessionStorage.removeItem("api_key");
           setApiKey(null);
           setTenant(null);
         }
@@ -63,14 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [apiKey]);
 
   const login = useCallback((key: string) => {
-    localStorage.setItem("api_key", key);
+    sessionStorage.setItem("api_key", key);
     hasFetched.current = false;
     setApiKey(key);
     setIsLoading(true);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("api_key");
+    sessionStorage.removeItem("api_key");
     hasFetched.current = false;
     setApiKey(null);
     setTenant(null);
