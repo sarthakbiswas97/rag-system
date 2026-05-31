@@ -61,20 +61,4 @@ class UsageTracker:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def count_since(
-        self,
-        tenant_id: str,
-        event_type: EventType,
-        since: datetime,
-    ) -> int:
-        stmt = (
-            select(func.count())
-            .select_from(UsageEvent)
-            .where(
-                UsageEvent.tenant_id == tenant_id,
-                UsageEvent.event_type == event_type,
-                UsageEvent.created_at >= since,
-            )
-        )
-        result = await self._session.execute(stmt)
-        return result.scalar_one()
+

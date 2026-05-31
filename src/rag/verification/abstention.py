@@ -63,18 +63,19 @@ class AbstentionDecider:
                 reason="Reranked documents have low relevance scores.",
             )
 
-        # Signal 4: NLI verification failed
+        # Signal 4: Faithfulness score below threshold
         if (
             verification_report is not None
-            and not verification_report.overall_faithful
+            and verification_report.faithfulness_score < self._faithfulness_threshold
         ):
-                return AbstentionDecision(
-                    should_abstain=True,
-                    reason=(
-                        f"Answer failed faithfulness check "
-                        f"(score: {verification_report.faithfulness_score:.2f})."
-                    ),
-                )
+            return AbstentionDecision(
+                should_abstain=True,
+                reason=(
+                    f"Answer failed faithfulness check "
+                    f"(score: {verification_report.faithfulness_score:.2f}, "
+                    f"threshold: {self._faithfulness_threshold:.2f})."
+                ),
+            )
 
         # Signal 5: All citations stripped by validator
         if answer_text.strip() and not validated_citations:
