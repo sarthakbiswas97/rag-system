@@ -44,6 +44,8 @@ from rag.verification.pipeline import VerificationPipeline
 
 logger = structlog.get_logger(__name__)
 
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -221,15 +223,13 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware)
 
-    _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
-
     @app.middleware("http")
     async def limit_upload_size(request: Request, call_next):
         if request.method == "POST":
             path = request.url.path
             if path in ("/v1/ingest", "/v1/documents"):
                 content_length = request.headers.get("content-length")
-                if content_length and int(content_length) > _MAX_UPLOAD_BYTES:
+                if content_length and int(content_length) > MAX_UPLOAD_BYTES:
                     return JSONResponse(
                         status_code=413,
                         content={"error": "Upload too large. Max 50MB."},
