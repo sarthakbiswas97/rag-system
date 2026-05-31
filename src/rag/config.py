@@ -6,16 +6,20 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_backend: str = "pytorch"  # "pytorch" or "onnx"
+    embedding_onnx_provider: str = "CPUExecutionProvider"
     embedding_batch_size: int = 64
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
     qdrant_collection: str = "documents"
+    qdrant_shard_number: int = 6
+    qdrant_replication_factor: int = 1
     chunk_size: int = 512
     chunk_overlap: int = 64
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     enable_reranking: bool = True
-    enable_hybrid_search: bool = True
-    enable_query_rewriting: bool = False
+    enable_sparse_search: bool = True
+    sparse_vocab_size: int = 50000
     nli_model: str = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
     enable_verification: bool = True
     faithfulness_threshold: float = 0.7
@@ -23,6 +27,8 @@ class Settings(BaseSettings):
     reranker_score_threshold: float = 0.5
     citation_support_threshold: float = 0.5
     llm_model: str = "gpt-4o-mini"
+    llm_fallback_model: str = ""
+    llm_fallback_api_key: str = ""
     llm_temperature: float = 0.1
     llm_max_tokens: int = 1024
     llm_timeout: float = 30.0
